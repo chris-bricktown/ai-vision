@@ -18,6 +18,11 @@
       <button id="start-btn" type="button">웹캠 시작</button>
       <button id="stop-btn" type="button" disabled>중지</button>
       <select id="camera-select" class="camera-select" hidden aria-label="카메라 선택"></select>
+      <div class="zoom-control" id="zoom-control" hidden>
+        <label for="zoom-range">줌</label>
+        <input type="range" id="zoom-range" min="1" max="1" step="0.1" value="1" />
+        <span id="zoom-value">1.0x</span>
+      </div>
       <span id="status" class="status" role="status">모델 로딩 대기 중</span>
     </div>
 
