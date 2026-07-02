@@ -69,10 +69,30 @@
     return selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : { facingMode: "environment" };
   }
 
+  // On Android, Chromium's camera backend can enumerate the same physical
+  // camera twice: once via the legacy Camera1 API ("camera N, facing back")
+  // and once via Camera2 ("camera2 N, facing back"), which is what actually
+  // exposes zoom/mirroring capabilities. Hide the legacy duplicate whenever
+  // a camera2 entry already covers that facing direction.
+  function dedupeLegacyCameraDuplicates(cameras) {
+    const camera2Facings = new Set();
+    cameras.forEach((cam) => {
+      const match = /^camera2\s+\d+,\s*facing\s+(\w+)/i.exec(cam.label || "");
+      if (match) camera2Facings.add(match[1].toLowerCase());
+    });
+    if (camera2Facings.size === 0) return cameras;
+
+    return cameras.filter((cam) => {
+      const legacyMatch = /^camera\s+\d+,\s*facing\s+(\w+)/i.exec(cam.label || "");
+      const isLegacy = legacyMatch && !/^camera2\b/i.test(cam.label || "");
+      return !(isLegacy && camera2Facings.has(legacyMatch[1].toLowerCase()));
+    });
+  }
+
   async function populateCameraList() {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const cameras = devices.filter((d) => d.kind === "videoinput");
+      const cameras = dedupeLegacyCameraDuplicates(devices.filter((d) => d.kind === "videoinput"));
 
       cameraSelect.innerHTML = "";
       cameras.forEach((cam, i) => {
