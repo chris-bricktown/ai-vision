@@ -221,6 +221,185 @@ button:disabled {
   font-size: 0.8rem;
 }
 
+.trainer-result {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.trainer-panel {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.trainer-toggle {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: 0;
+  padding: 0.9rem 1.2rem;
+  font-size: 0.95rem;
+}
+
+.trainer-toggle:hover {
+  background: rgba(79, 140, 255, 0.08);
+}
+
+.trainer-body {
+  padding: 0 1.2rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.trainer-hint {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.trainer-add-class {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.trainer-add-class input[type="text"] {
+  flex: 1;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.trainer-add-class button {
+  background: var(--accent);
+  color: #fff;
+}
+
+.trainer-class-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.trainer-class {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.trainer-class-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.trainer-class-title {
+  font-weight: 600;
+  flex: 1;
+}
+
+.trainer-class-count {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.trainer-class-remove {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.trainer-class-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.trainer-capture-btn {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.trainer-upload-label {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+}
+
+.trainer-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.trainer-thumb {
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.trainer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border);
+}
+
+.trainer-use-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.trainer-actions button,
+.trainer-import-label {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.trainer-status {
+  margin: 0;
+  min-height: 1.1rem;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
 .result-panel {
   width: 100%;
   background: var(--surface);
