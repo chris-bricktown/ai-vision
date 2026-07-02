@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Vision — 실시간 웹캠 객체 인식</title>
+  <meta name="description" content="TensorFlow.js와 COCO-SSD를 이용한 브라우저 기반 실시간 웹캠 객체 인식 데모" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>AI Vision</h1>
+    <p class="subtitle">TensorFlow.js + COCO-SSD 실시간 웹캠 객체 인식</p>
+  </header>
+
+  <main>
+    <div class="controls">
+      <button id="start-btn" type="button">웹캠 시작</button>
+      <button id="stop-btn" type="button" disabled>중지</button>
+      <span id="status" class="status" role="status">모델 로딩 대기 중</span>
+    </div>
+
+    <div class="stage" id="stage">
+      <video id="webcam" autoplay playsinline muted></video>
+      <canvas id="overlay"></canvas>
+      <p id="placeholder" class="placeholder">
+        "웹캠 시작" 버튼을 눌러 카메라 접근을 허용하면<br />실시간 객체 인식이 시작됩니다.
+      </p>
+    </div>
+
+    <div class="info-panel">
+      <div class="fps-counter">FPS: <span id="fps">0</span></div>
+      <ul id="detections" class="detections"></ul>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <p>
+      모든 인식은 브라우저에서 로컬로 실행되며, 영상은 서버로 전송되지 않습니다.
+      Powered by <a href="https://www.tensorflow.org/js" target="_blank" rel="noopener noreferrer">TensorFlow.js</a>
+      &amp; <a href="https://github.com/tensorflow/tfjs-models/tree/master/coco-ssd" target="_blank" rel="noopener noreferrer">COCO-SSD</a>
+    </p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
