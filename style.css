@@ -123,7 +123,7 @@ button:disabled {
 }
 
 #zoom-value {
-  min-width: 2.6rem;
+  min-width: 6.5rem;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }

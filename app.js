@@ -30,6 +30,7 @@
   let mirrored = true;
   let selectedDeviceId = null;
   let currentTrack = null;
+  let zoomMax = 1;
   let model = null;
   let breedReady = false;
   let lastBreedResults = [];
@@ -98,6 +99,7 @@
     }
 
     const { min, max, step } = capabilities.zoom;
+    zoomMax = max;
     zoomRange.min = min;
     zoomRange.max = max;
     zoomRange.step = step || 0.1;
@@ -105,7 +107,7 @@
     const settings = track.getSettings();
     const currentZoom = typeof settings.zoom === "number" ? settings.zoom : min;
     zoomRange.value = currentZoom;
-    zoomValue.textContent = `${currentZoom.toFixed(1)}x`;
+    zoomValue.textContent = `${currentZoom.toFixed(1)}x / 최대 ${max.toFixed(1)}x`;
     zoomControl.hidden = false;
   }
 
@@ -391,7 +393,7 @@
     const value = parseFloat(zoomRange.value);
     try {
       await currentTrack.applyConstraints({ advanced: [{ zoom: value }] });
-      zoomValue.textContent = `${value.toFixed(1)}x`;
+      zoomValue.textContent = `${value.toFixed(1)}x / 최대 ${zoomMax.toFixed(1)}x`;
     } catch (err) {
       console.warn("줌 적용에 실패했습니다:", err.message);
     }
