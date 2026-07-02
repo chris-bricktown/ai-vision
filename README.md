@@ -23,10 +23,16 @@ GitHub Pages로 배포되어 있습니다: `https://<username>.github.io/ai-visi
 ### 품종 분류 모델 교체 (커스텀 학습 모델로)
 
 `breedClassifier.js`는 품종 분류기를 `load()` / `classify()` 인터페이스 뒤에 감싸 두었습니다.
-나중에 Oxford-IIIT Pet 등으로 직접 학습한 모델이 생기면:
+`models/custom-breeds/`에는 Oxford-IIIT Pet Dataset 6개 클래스(페르시안·샴·벵골 고양이, 비글·퍼그·요크셔테리어)로
+직접 학습한 작은 예시 모델이 이미 들어 있고, `breedClassifier.js`의 `customBackend`로 구현돼 있습니다
+(학습 스크립트와 과정은 [`training/README.md`](training/README.md) 참고). 클래스가 6개뿐이라 MobileNet보다
+범위가 훨씬 좁으므로 기본 `activeBackend`는 여전히 MobileNet이며, 이건 어디까지나 학습→변환→적용 파이프라인이
+동작한다는 걸 보여주는 예시입니다.
+
+다른 모델로 바꾸려면:
 
 1. `tensorflowjs_converter`로 TF.js 포맷(model.json + 가중치 샤드)으로 변환해 정적 파일로 호스팅
-2. `breedClassifier.js`에 `mobilenetBackend`와 동일한 형태(`load()`, `classify(imageElement, topK)`)의 새 backend 객체를 추가하고 `tf.loadGraphModel`/`tf.loadLayersModel`로 로드, 출력 라벨을 매핑
+2. `breedClassifier.js`에 `mobilenetBackend`/`customBackend`와 동일한 형태(`load()`, `classify(imageElement, topK)`)의 새 backend 객체를 추가하고 `tf.loadGraphModel`/`tf.loadLayersModel`로 로드, 출력 라벨을 매핑
 3. `activeBackend`가 새 backend를 가리키도록 변경
 
 `app.js` 쪽은 수정할 필요가 없습니다.
@@ -59,5 +65,7 @@ python3 -m http.server 8000
 ├── app.js                     # 웹캠 접근, 모델 로드, 추론 루프
 ├── breedClassifier.js          # 품종 분류기 (교체 가능한 backend 인터페이스)
 ├── labels_ko.js                 # 클래스/품종 라벨 한글 매핑
+├── models/custom-breeds/         # 커스텀 학습 모델 예시 (TF.js layers-model)
+├── training/                      # 위 모델을 만든 학습 스크립트 (train.py, README.md)
 └── .github/workflows/deploy.yml  # GitHub Pages 자동 배포
 ```

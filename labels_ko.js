@@ -217,6 +217,12 @@
     "Persian cat": "페르시안 고양이",
     "Siamese cat": "샴 고양이",
     "Egyptian cat": "이집션 마우",
+
+    // Custom model labels (Oxford-IIIT Pet dataset naming)
+    Persian: "페르시안 고양이",
+    Siamese: "샴 고양이",
+    Bengal: "벵골 고양이",
+    yorkshire_terrier: "요크셔 테리어",
   };
 
   global.CLASS_LABELS_KO = CLASS_LABELS_KO;
