@@ -13,6 +13,7 @@
   const resultImage = document.getElementById("result-image");
   const resultCaption = document.getElementById("result-caption");
   const rescanBtn = document.getElementById("rescan-btn");
+  const cameraSelect = document.getElementById("camera-select");
 
   const DETECTION_INTERVAL_MS = 100;
   const BREED_INTERVAL_MS = 700;
@@ -24,6 +25,7 @@
   const cropCtx = cropCanvas.getContext("2d");
 
   let mirrored = true;
+  let selectedDeviceId = null;
   let model = null;
   let breedReady = false;
   let lastBreedResults = [];
@@ -58,6 +60,31 @@
     }
   }
 
+  function getVideoConstraints() {
+    return selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : { facingMode: "environment" };
+  }
+
+  async function populateCameraList() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices.filter((d) => d.kind === "videoinput");
+
+      cameraSelect.innerHTML = "";
+      cameras.forEach((cam, i) => {
+        const option = document.createElement("option");
+        option.value = cam.deviceId;
+        option.textContent = cam.label || `카메라 ${i + 1}`;
+        cameraSelect.appendChild(option);
+      });
+      cameraSelect.hidden = cameras.length <= 1;
+      if (selectedDeviceId && cameras.some((cam) => cam.deviceId === selectedDeviceId)) {
+        cameraSelect.value = selectedDeviceId;
+      }
+    } catch (err) {
+      console.warn("카메라 목록을 가져오지 못했습니다:", err.message);
+    }
+  }
+
   async function startWebcam() {
     startBtn.disabled = true;
     resultPanel.hidden = true;
@@ -67,7 +94,7 @@
 
       setStatus("카메라 접근 요청 중...");
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
+        video: getVideoConstraints(),
         audio: false,
       });
 
@@ -85,6 +112,9 @@
       const trackSettings = stream.getVideoTracks()[0].getSettings();
       mirrored = trackSettings.facingMode !== "environment";
       stage.classList.toggle("mirrored", mirrored);
+      selectedDeviceId = trackSettings.deviceId || selectedDeviceId;
+
+      await populateCameraList();
 
       stage.classList.add("active");
       stopBtn.disabled = false;
@@ -320,6 +350,13 @@
   startBtn.addEventListener("click", startWebcam);
   stopBtn.addEventListener("click", stopWebcam);
   rescanBtn.addEventListener("click", startWebcam);
+  cameraSelect.addEventListener("change", () => {
+    selectedDeviceId = cameraSelect.value || null;
+    if (running) {
+      stopScanning();
+      startWebcam();
+    }
+  });
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     setStatus("이 브라우저는 웹캠 접근을 지원하지 않습니다.");
