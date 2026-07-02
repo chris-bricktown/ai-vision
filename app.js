@@ -23,6 +23,7 @@
   const cropCanvas = document.createElement("canvas");
   const cropCtx = cropCanvas.getContext("2d");
 
+  let mirrored = true;
   let model = null;
   let breedReady = false;
   let lastBreedResults = [];
@@ -80,6 +81,10 @@
 
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
+
+      const trackSettings = stream.getVideoTracks()[0].getSettings();
+      mirrored = trackSettings.facingMode !== "environment";
+      stage.classList.toggle("mirrored", mirrored);
 
       stage.classList.add("active");
       stopBtn.disabled = false;
@@ -243,13 +248,17 @@
       ctx.fillStyle = BOX_COLOR;
       ctx.fillRect(x - 1, y - 22, textWidth + 10, 22);
 
-      // The canvas is mirrored via CSS (scaleX(-1)) to match the video preview,
-      // so text must be flipped back locally or it renders backwards.
-      ctx.save();
-      ctx.scale(-1, 1);
       ctx.fillStyle = "#0f1115";
-      ctx.fillText(label, -(x + 5 + textWidth), y - 6);
-      ctx.restore();
+      if (mirrored) {
+        // The canvas is mirrored via CSS (scaleX(-1)) to match the video
+        // preview, so text must be flipped back locally or it renders backwards.
+        ctx.save();
+        ctx.scale(-1, 1);
+        ctx.fillText(label, -(x + 5 + textWidth), y - 6);
+        ctx.restore();
+      } else {
+        ctx.fillText(label, x + 5, y - 6);
+      }
     });
   }
 

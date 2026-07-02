@@ -15,6 +15,7 @@ GitHub Pages로 배포되어 있습니다: `https://<username>.github.io/ai-visi
 - **개/고양이 품종 인식**: COCO-SSD가 "dog"/"cat"을 찾으면 해당 영역을 잘라내 2차로 [MobileNet](https://github.com/tensorflow/tfjs-models/tree/master/mobilenet)(ImageNet 사전 학습)에 넣어 품종 후보를 표시합니다. ImageNet에는 개 품종이 약 120종 포함돼 있어 개는 비교적 정확하지만, 고양이 품종은 4~5종뿐이라 정확도가 낮습니다.
 - **한글 인식 결과**: 객체 클래스(80종)와 품종 라벨을 `labels_ko.js`의 매핑 테이블을 통해 한글로 표시합니다. 매핑에 없는 라벨은 영문 그대로 표시됩니다.
 - **품종 확정 시 자동 정지 + 대표 이미지**: 품종 분류 신뢰도가 임계값(기본 40%) 이상이면 실시간 인식을 멈추고, 해당 품종의 대표 이미지를 [Wikipedia REST API](https://en.wikipedia.org/api/rest_v1/)에서 가져와 보여줍니다. "다시 인식하기" 버튼으로 재시작할 수 있습니다.
+- **카메라 방향에 따른 자동 좌우반전**: 노트북 웹캠처럼 전면 카메라를 쓸 때는 거울처럼 좌우반전되어 보이지만, 휴대폰 후면 카메라(`facingMode: environment`)로 전환되면 실제 세상을 그대로 보여주기 위해 반전을 끕니다.
 
 ### 품종 분류 모델 교체 (커스텀 학습 모델로)
 
