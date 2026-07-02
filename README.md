@@ -13,6 +13,8 @@ GitHub Pages로 배포되어 있습니다: `https://<username>.github.io/ai-visi
 - **사전 학습 모델**: [COCO-SSD](https://github.com/tensorflow/tfjs-models/tree/master/coco-ssd)를 CDN에서 불러와 즉시 사용합니다.
 - **실시간 인식**: 웹캠 영상 위에 바운딩 박스와 클래스/신뢰도를 실시간으로 오버레이합니다.
 - **개/고양이 품종 인식**: COCO-SSD가 "dog"/"cat"을 찾으면 해당 영역을 잘라내 2차로 [MobileNet](https://github.com/tensorflow/tfjs-models/tree/master/mobilenet)(ImageNet 사전 학습)에 넣어 품종 후보를 표시합니다. ImageNet에는 개 품종이 약 120종 포함돼 있어 개는 비교적 정확하지만, 고양이 품종은 4~5종뿐이라 정확도가 낮습니다.
+- **한글 인식 결과**: 객체 클래스(80종)와 품종 라벨을 `labels_ko.js`의 매핑 테이블을 통해 한글로 표시합니다. 매핑에 없는 라벨은 영문 그대로 표시됩니다.
+- **품종 확정 시 자동 정지 + 대표 이미지**: 품종 분류 신뢰도가 임계값(기본 40%) 이상이면 실시간 인식을 멈추고, 해당 품종의 대표 이미지를 [Wikipedia REST API](https://en.wikipedia.org/api/rest_v1/)에서 가져와 보여줍니다. "다시 인식하기" 버튼으로 재시작할 수 있습니다.
 
 ### 품종 분류 모델 교체 (커스텀 학습 모델로)
 
@@ -52,5 +54,6 @@ python3 -m http.server 8000
 ├── style.css                 # 스타일
 ├── app.js                     # 웹캠 접근, 모델 로드, 추론 루프
 ├── breedClassifier.js          # 품종 분류기 (교체 가능한 backend 인터페이스)
+├── labels_ko.js                 # 클래스/품종 라벨 한글 매핑
 └── .github/workflows/deploy.yml  # GitHub Pages 자동 배포
 ```
