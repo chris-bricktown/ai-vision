@@ -32,6 +32,13 @@
       <div class="fps-counter">FPS: <span id="fps">0</span></div>
       <ul id="detections" class="detections"></ul>
     </div>
+
+    <div class="result-panel" id="result-panel" hidden>
+      <h2 id="result-title"></h2>
+      <img id="result-image" class="result-image" alt="" />
+      <p id="result-caption" class="result-caption"></p>
+      <button id="rescan-btn" type="button">다시 인식하기</button>
+    </div>
   </main>
 
   <footer class="app-footer">
@@ -46,6 +53,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
   <script src="breedClassifier.js"></script>
+  <script src="labels_ko.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

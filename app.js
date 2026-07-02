@@ -8,10 +8,16 @@
   const statusEl = document.getElementById("status");
   const fpsEl = document.getElementById("fps");
   const detectionsEl = document.getElementById("detections");
+  const resultPanel = document.getElementById("result-panel");
+  const resultTitle = document.getElementById("result-title");
+  const resultImage = document.getElementById("result-image");
+  const resultCaption = document.getElementById("result-caption");
+  const rescanBtn = document.getElementById("rescan-btn");
 
   const DETECTION_INTERVAL_MS = 100;
   const BREED_INTERVAL_MS = 700;
   const MIN_SCORE = 0.5;
+  const BREED_CONFIRM_THRESHOLD = 0.4;
   const BOX_COLOR = "#37e07a";
 
   const cropCanvas = document.createElement("canvas");
@@ -53,6 +59,7 @@
 
   async function startWebcam() {
     startBtn.disabled = true;
+    resultPanel.hidden = true;
     try {
       await ensureModel();
       await ensureBreedModel();
@@ -93,7 +100,7 @@
     }
   }
 
-  function stopWebcam() {
+  function stopScanning() {
     running = false;
     if (rafId) cancelAnimationFrame(rafId);
     rafId = null;
@@ -103,16 +110,52 @@
       stream = null;
     }
     video.srcObject = null;
+    stage.classList.remove("active");
+  }
+
+  function stopWebcam() {
+    stopScanning();
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     detectionsEl.innerHTML = "";
     fpsEl.textContent = "0";
     lastBreedResults = [];
 
-    stage.classList.remove("active");
     startBtn.disabled = false;
     stopBtn.disabled = true;
     setStatus("중지됨");
+  }
+
+  async function fetchRepresentativeImage(breedLabelEn) {
+    try {
+      const res = await fetch(
+        `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(breedLabelEn)}`
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      return (data.thumbnail && data.thumbnail.source) || (data.originalimage && data.originalimage.source) || null;
+    } catch (err) {
+      console.warn("대표 이미지를 불러오지 못했습니다:", err.message);
+      return null;
+    }
+  }
+
+  function showBreedResult(result) {
+    stopScanning();
+
+    resultImage.removeAttribute("src");
+    resultImage.alt = breedLabelKo(result.label);
+    resultTitle.textContent = `${classLabelKo(result.class)}: ${breedLabelKo(result.label)}`;
+    resultCaption.textContent = `인식 신뢰도 ${Math.round(result.probability * 100)}%`;
+    resultPanel.hidden = false;
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    setStatus("품종 인식 완료");
+
+    fetchRepresentativeImage(result.label).then((url) => {
+      if (url) resultImage.src = url;
+    });
   }
 
   function bboxCenter([x, y, width, height]) {
@@ -139,19 +182,25 @@
 
   async function classifyBreeds(predictions) {
     const results = [];
+    let confirmed = null;
     for (const pred of predictions) {
       if (!BreedClassifier.isBreedTarget(pred.class)) continue;
       try {
         const crop = cropRegion(video, pred.bbox);
         const [top] = await BreedClassifier.classify(crop, 1);
         if (top) {
-          results.push({ class: pred.class, bbox: pred.bbox, label: top.label, probability: top.probability });
+          const result = { class: pred.class, bbox: pred.bbox, label: top.label, probability: top.probability };
+          results.push(result);
+          if (!confirmed && top.probability >= BREED_CONFIRM_THRESHOLD) {
+            confirmed = result;
+          }
         }
       } catch (err) {
         console.error("Breed classification error:", err);
       }
     }
     lastBreedResults = results;
+    return confirmed;
   }
 
   function applyCachedBreeds(predictions) {
@@ -182,8 +231,8 @@
     predictions.forEach((pred) => {
       const [x, y, width, height] = pred.bbox;
       const label = pred.breedLabel
-        ? `${pred.class}: ${pred.breedLabel} ${Math.round(pred.breedProbability * 100)}%`
-        : `${pred.class} ${Math.round(pred.score * 100)}%`;
+        ? `${classLabelKo(pred.class)}: ${breedLabelKo(pred.breedLabel)} ${Math.round(pred.breedProbability * 100)}%`
+        : `${classLabelKo(pred.class)} ${Math.round(pred.score * 100)}%`;
 
       ctx.strokeStyle = BOX_COLOR;
       ctx.lineWidth = 2;
@@ -208,7 +257,9 @@
     detectionsEl.innerHTML = "";
     const seen = new Map();
     predictions.forEach((pred) => {
-      const label = pred.breedLabel ? `${pred.class}: ${pred.breedLabel}` : pred.class;
+      const label = pred.breedLabel
+        ? `${classLabelKo(pred.class)}: ${breedLabelKo(pred.breedLabel)}`
+        : classLabelKo(pred.class);
       const count = seen.get(label) || 0;
       seen.set(label, count + 1);
     });
@@ -236,7 +287,11 @@
 
         if (breedReady && now - lastBreedTime >= BREED_INTERVAL_MS) {
           lastBreedTime = now;
-          await classifyBreeds(filtered);
+          const confirmed = await classifyBreeds(filtered);
+          if (confirmed) {
+            showBreedResult(confirmed);
+            return;
+          }
         }
         if (breedReady) {
           applyCachedBreeds(filtered);
@@ -249,11 +304,13 @@
       }
     }
 
+    if (!running) return;
     rafId = requestAnimationFrame(detectFrame);
   }
 
   startBtn.addEventListener("click", startWebcam);
   stopBtn.addEventListener("click", stopWebcam);
+  rescanBtn.addEventListener("click", startWebcam);
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     setStatus("이 브라우저는 웹캠 접근을 지원하지 않습니다.");
