@@ -14,6 +14,9 @@
   const resultCaption = document.getElementById("result-caption");
   const rescanBtn = document.getElementById("rescan-btn");
   const cameraSelect = document.getElementById("camera-select");
+  const zoomControl = document.getElementById("zoom-control");
+  const zoomRange = document.getElementById("zoom-range");
+  const zoomValue = document.getElementById("zoom-value");
 
   const DETECTION_INTERVAL_MS = 100;
   const BREED_INTERVAL_MS = 700;
@@ -26,6 +29,7 @@
 
   let mirrored = true;
   let selectedDeviceId = null;
+  let currentTrack = null;
   let model = null;
   let breedReady = false;
   let lastBreedResults = [];
@@ -85,6 +89,26 @@
     }
   }
 
+  function setupZoomControl(track) {
+    currentTrack = track;
+    const capabilities = typeof track.getCapabilities === "function" ? track.getCapabilities() : null;
+    if (!capabilities || !capabilities.zoom) {
+      zoomControl.hidden = true;
+      return;
+    }
+
+    const { min, max, step } = capabilities.zoom;
+    zoomRange.min = min;
+    zoomRange.max = max;
+    zoomRange.step = step || 0.1;
+
+    const settings = track.getSettings();
+    const currentZoom = typeof settings.zoom === "number" ? settings.zoom : min;
+    zoomRange.value = currentZoom;
+    zoomValue.textContent = `${currentZoom.toFixed(1)}x`;
+    zoomControl.hidden = false;
+  }
+
   async function startWebcam() {
     startBtn.disabled = true;
     resultPanel.hidden = true;
@@ -109,11 +133,13 @@
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
-      const trackSettings = stream.getVideoTracks()[0].getSettings();
+      const track = stream.getVideoTracks()[0];
+      const trackSettings = track.getSettings();
       mirrored = trackSettings.facingMode !== "environment";
       stage.classList.toggle("mirrored", mirrored);
       selectedDeviceId = trackSettings.deviceId || selectedDeviceId;
 
+      setupZoomControl(track);
       await populateCameraList();
 
       stage.classList.add("active");
@@ -146,6 +172,9 @@
     }
     video.srcObject = null;
     stage.classList.remove("active");
+
+    currentTrack = null;
+    zoomControl.hidden = true;
   }
 
   function stopWebcam() {
@@ -355,6 +384,16 @@
     if (running) {
       stopScanning();
       startWebcam();
+    }
+  });
+  zoomRange.addEventListener("input", async () => {
+    if (!currentTrack) return;
+    const value = parseFloat(zoomRange.value);
+    try {
+      await currentTrack.applyConstraints({ advanced: [{ zoom: value }] });
+      zoomValue.textContent = `${value.toFixed(1)}x`;
+    } catch (err) {
+      console.warn("줌 적용에 실패했습니다:", err.message);
     }
   });
 

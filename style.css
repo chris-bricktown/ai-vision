@@ -105,6 +105,29 @@ button:disabled {
   max-width: 12rem;
 }
 
+.zoom-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.zoom-control input[type="range"] {
+  width: 7rem;
+  accent-color: var(--accent);
+}
+
+#zoom-value {
+  min-width: 2.6rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
 .status {
   color: var(--text-dim);
   font-size: 0.9rem;
