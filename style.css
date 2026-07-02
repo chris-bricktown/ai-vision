@@ -36,12 +36,6 @@ body {
   letter-spacing: -0.02em;
 }
 
-.subtitle {
-  margin: 0.4rem 0 0;
-  color: var(--text-dim);
-  font-size: 0.95rem;
-}
-
 main {
   width: 100%;
   max-width: 720px;
@@ -115,6 +109,10 @@ button:disabled {
   padding: 0.4rem 0.75rem;
   font-size: 0.85rem;
   color: var(--text-dim);
+}
+
+.zoom-control[hidden] {
+  display: none;
 }
 
 .zoom-control input[type="range"] {
@@ -261,17 +259,6 @@ button:disabled {
 
 #rescan-btn:hover {
   background: var(--accent-hover);
-}
-
-.app-footer {
-  color: var(--text-dim);
-  font-size: 0.8rem;
-  text-align: center;
-  padding: 1rem;
-}
-
-.app-footer a {
-  color: var(--accent);
 }
 
 @media (max-width: 480px) {

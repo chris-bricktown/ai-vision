@@ -3,14 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Vision — 실시간 웹캠 객체 인식</title>
-  <meta name="description" content="TensorFlow.js와 COCO-SSD를 이용한 브라우저 기반 실시간 웹캠 객체 인식 데모" />
+  <title>강아지·고양이 식별기</title>
+  <meta name="description" content="웹캠으로 강아지와 고양이를 인식하는 프로그램" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="app-header">
-    <h1>AI Vision</h1>
-    <p class="subtitle">TensorFlow.js + COCO-SSD 실시간 웹캠 객체 인식</p>
+    <h1>강아지·고양이 식별기</h1>
   </header>
 
   <main>
@@ -46,14 +45,6 @@
       <button id="rescan-btn" type="button">다시 인식하기</button>
     </div>
   </main>
-
-  <footer class="app-footer">
-    <p>
-      모든 인식은 브라우저에서 로컬로 실행되며, 영상은 서버로 전송되지 않습니다.
-      Powered by <a href="https://www.tensorflow.org/js" target="_blank" rel="noopener noreferrer">TensorFlow.js</a>
-      &amp; <a href="https://github.com/tensorflow/tfjs-models/tree/master/coco-ssd" target="_blank" rel="noopener noreferrer">COCO-SSD</a>
-    </p>
-  </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
