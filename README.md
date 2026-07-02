@@ -12,6 +12,18 @@ GitHub Pages로 배포되어 있습니다: `https://<username>.github.io/ai-visi
 - **서버리스**: 모델 다운로드부터 추론까지 모두 브라우저에서 실행됩니다. 영상은 어디로도 전송되지 않습니다.
 - **사전 학습 모델**: [COCO-SSD](https://github.com/tensorflow/tfjs-models/tree/master/coco-ssd)를 CDN에서 불러와 즉시 사용합니다.
 - **실시간 인식**: 웹캠 영상 위에 바운딩 박스와 클래스/신뢰도를 실시간으로 오버레이합니다.
+- **개/고양이 품종 인식**: COCO-SSD가 "dog"/"cat"을 찾으면 해당 영역을 잘라내 2차로 [MobileNet](https://github.com/tensorflow/tfjs-models/tree/master/mobilenet)(ImageNet 사전 학습)에 넣어 품종 후보를 표시합니다. ImageNet에는 개 품종이 약 120종 포함돼 있어 개는 비교적 정확하지만, 고양이 품종은 4~5종뿐이라 정확도가 낮습니다.
+
+### 품종 분류 모델 교체 (커스텀 학습 모델로)
+
+`breedClassifier.js`는 품종 분류기를 `load()` / `classify()` 인터페이스 뒤에 감싸 두었습니다.
+나중에 Oxford-IIIT Pet 등으로 직접 학습한 모델이 생기면:
+
+1. `tensorflowjs_converter`로 TF.js 포맷(model.json + 가중치 샤드)으로 변환해 정적 파일로 호스팅
+2. `breedClassifier.js`에 `mobilenetBackend`와 동일한 형태(`load()`, `classify(imageElement, topK)`)의 새 backend 객체를 추가하고 `tf.loadGraphModel`/`tf.loadLayersModel`로 로드, 출력 라벨을 매핑
+3. `activeBackend`가 새 backend를 가리키도록 변경
+
+`app.js` 쪽은 수정할 필요가 없습니다.
 
 ## 로컬 실행
 
@@ -39,5 +51,6 @@ python3 -m http.server 8000
 ├── index.html               # 메인 페이지
 ├── style.css                 # 스타일
 ├── app.js                     # 웹캠 접근, 모델 로드, 추론 루프
+├── breedClassifier.js          # 품종 분류기 (교체 가능한 backend 인터페이스)
 └── .github/workflows/deploy.yml  # GitHub Pages 자동 배포
 ```

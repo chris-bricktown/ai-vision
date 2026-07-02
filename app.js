@@ -10,14 +10,21 @@
   const detectionsEl = document.getElementById("detections");
 
   const DETECTION_INTERVAL_MS = 100;
+  const BREED_INTERVAL_MS = 700;
   const MIN_SCORE = 0.5;
   const BOX_COLOR = "#37e07a";
 
+  const cropCanvas = document.createElement("canvas");
+  const cropCtx = cropCanvas.getContext("2d");
+
   let model = null;
+  let breedReady = false;
+  let lastBreedResults = [];
   let stream = null;
   let running = false;
   let rafId = null;
   let lastDetectTime = 0;
+  let lastBreedTime = 0;
   let lastFrameTime = performance.now();
 
   function setStatus(text) {
@@ -34,10 +41,21 @@
     return model;
   }
 
+  async function ensureBreedModel() {
+    try {
+      await BreedClassifier.load();
+      breedReady = true;
+    } catch (err) {
+      console.warn("품종 분류 모델을 불러오지 못했습니다:", err.message);
+      breedReady = false;
+    }
+  }
+
   async function startWebcam() {
     startBtn.disabled = true;
     try {
       await ensureModel();
+      await ensureBreedModel();
 
       setStatus("카메라 접근 요청 중...");
       stream = await navigator.mediaDevices.getUserMedia({
@@ -89,6 +107,7 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     detectionsEl.innerHTML = "";
     fpsEl.textContent = "0";
+    lastBreedResults = [];
 
     stage.classList.remove("active");
     startBtn.disabled = false;
@@ -96,12 +115,75 @@
     setStatus("중지됨");
   }
 
+  function bboxCenter([x, y, width, height]) {
+    return [x + width / 2, y + height / 2];
+  }
+
+  function bboxCenterDistance(a, b) {
+    const [ax, ay] = bboxCenter(a);
+    const [bx, by] = bboxCenter(b);
+    return Math.hypot(ax - bx, ay - by);
+  }
+
+  function cropRegion(source, [x, y, width, height]) {
+    const sx = Math.max(0, Math.round(x));
+    const sy = Math.max(0, Math.round(y));
+    const sw = Math.max(1, Math.round(Math.min(width, video.videoWidth - sx)));
+    const sh = Math.max(1, Math.round(Math.min(height, video.videoHeight - sy)));
+
+    cropCanvas.width = sw;
+    cropCanvas.height = sh;
+    cropCtx.drawImage(source, sx, sy, sw, sh, 0, 0, sw, sh);
+    return cropCanvas;
+  }
+
+  async function classifyBreeds(predictions) {
+    const results = [];
+    for (const pred of predictions) {
+      if (!BreedClassifier.isBreedTarget(pred.class)) continue;
+      try {
+        const crop = cropRegion(video, pred.bbox);
+        const [top] = await BreedClassifier.classify(crop, 1);
+        if (top) {
+          results.push({ class: pred.class, bbox: pred.bbox, label: top.label, probability: top.probability });
+        }
+      } catch (err) {
+        console.error("Breed classification error:", err);
+      }
+    }
+    lastBreedResults = results;
+  }
+
+  function applyCachedBreeds(predictions) {
+    predictions.forEach((pred) => {
+      if (!BreedClassifier.isBreedTarget(pred.class)) return;
+      const [width, height] = [pred.bbox[2], pred.bbox[3]];
+      const maxDistance = Math.max(width, height);
+      let closest = null;
+      let closestDistance = Infinity;
+      lastBreedResults.forEach((cached) => {
+        if (cached.class !== pred.class) return;
+        const distance = bboxCenterDistance(cached.bbox, pred.bbox);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closest = cached;
+        }
+      });
+      if (closest && closestDistance <= maxDistance) {
+        pred.breedLabel = closest.label;
+        pred.breedProbability = closest.probability;
+      }
+    });
+  }
+
   function drawDetections(predictions) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     predictions.forEach((pred) => {
       const [x, y, width, height] = pred.bbox;
-      const label = `${pred.class} ${Math.round(pred.score * 100)}%`;
+      const label = pred.breedLabel
+        ? `${pred.class}: ${pred.breedLabel} ${Math.round(pred.breedProbability * 100)}%`
+        : `${pred.class} ${Math.round(pred.score * 100)}%`;
 
       ctx.strokeStyle = BOX_COLOR;
       ctx.lineWidth = 2;
@@ -126,8 +208,9 @@
     detectionsEl.innerHTML = "";
     const seen = new Map();
     predictions.forEach((pred) => {
-      const count = seen.get(pred.class) || 0;
-      seen.set(pred.class, count + 1);
+      const label = pred.breedLabel ? `${pred.class}: ${pred.breedLabel}` : pred.class;
+      const count = seen.get(label) || 0;
+      seen.set(label, count + 1);
     });
     seen.forEach((count, label) => {
       const li = document.createElement("li");
@@ -150,6 +233,15 @@
       try {
         const predictions = await model.detect(video);
         const filtered = predictions.filter((p) => p.score >= MIN_SCORE);
+
+        if (breedReady && now - lastBreedTime >= BREED_INTERVAL_MS) {
+          lastBreedTime = now;
+          await classifyBreeds(filtered);
+        }
+        if (breedReady) {
+          applyCachedBreeds(filtered);
+        }
+
         drawDetections(filtered);
         updateDetectionList(filtered);
       } catch (err) {
