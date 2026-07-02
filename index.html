@@ -36,7 +36,37 @@
     <div class="info-panel">
       <div class="fps-counter">FPS: <span id="fps">0</span></div>
       <ul id="detections" class="detections"></ul>
+      <p id="trainer-result" class="trainer-result" hidden></p>
     </div>
+
+    <section class="trainer-panel" id="trainer-panel">
+      <button id="trainer-toggle" type="button" class="trainer-toggle" aria-expanded="false">
+        + 나만의 사물 학습하기
+      </button>
+      <div class="trainer-body" id="trainer-body" hidden>
+        <p class="trainer-hint">
+          이름을 정하고 웹캠으로 찍거나 이미지를 올려 몇 장만 등록하면, 그 즉시 그 이름으로 인식할 수 있습니다.
+        </p>
+        <form id="trainer-add-class-form" class="trainer-add-class">
+          <input type="text" id="trainer-class-title" placeholder="예: 우리집 강아지 초코" required />
+          <button type="submit">클래스 추가</button>
+        </form>
+        <ul id="trainer-class-list" class="trainer-class-list"></ul>
+        <div class="trainer-actions">
+          <label class="trainer-use-toggle">
+            <input type="checkbox" id="trainer-use-toggle" />
+            내 모델로도 인식하기
+          </label>
+          <button type="button" id="trainer-export-btn">모델 내보내기</button>
+          <label class="trainer-import-label">
+            모델 불러오기
+            <input type="file" id="trainer-import-input" accept="application/json" hidden />
+          </label>
+          <button type="button" id="trainer-reset-btn">전체 초기화</button>
+        </div>
+        <p id="trainer-status" class="trainer-status"></p>
+      </div>
+    </section>
 
     <div class="result-panel" id="result-panel" hidden>
       <h2 id="result-title"></h2>
@@ -49,8 +79,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier@1.2.4/dist/knn-classifier.min.js"></script>
   <script src="breedClassifier.js"></script>
+  <script src="customTrainer.js"></script>
   <script src="labels_ko.js"></script>
   <script src="app.js"></script>
+  <script src="trainerUI.js"></script>
 </body>
 </html>
