@@ -125,13 +125,19 @@ button:disabled {
 
 #webcam {
   object-fit: cover;
-  transform: scaleX(-1);
   display: none;
 }
 
 #overlay {
-  transform: scaleX(-1);
   display: none;
+}
+
+/* Mirroring only makes sense for a front-facing (selfie-style) camera.
+   For a rear/environment-facing camera it would flip the real world
+   left-right, which is confusing when aiming the camera. */
+.stage.mirrored #webcam,
+.stage.mirrored #overlay {
+  transform: scaleX(-1);
 }
 
 .placeholder {
