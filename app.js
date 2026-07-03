@@ -224,14 +224,35 @@
     setStatus("중지됨");
   }
 
-  async function fetchRepresentativeImage(breedLabelEn) {
+  // A bare breed name is often ambiguous on Wikipedia and can resolve to a
+  // completely unrelated article - e.g. "Havanese" redirects to "Havana"
+  // (the city), "Boxer"/"Samoyed" land on disambiguation pages, and
+  // "Newfoundland" resolves to the Canadian province. Try "<breed> dog"/
+  // "<breed> cat" first (works for those cases and most others without
+  // needing a hardcoded exception list), then fall back to the bare label
+  // for breeds where the suffixed title doesn't exist as its own article
+  // (e.g. "Golden Retriever" has no "Golden Retriever dog" page).
+  async function fetchWikipediaSummary(title) {
+    const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.type === "disambiguation") return null;
+    return (data.thumbnail && data.thumbnail.source) || (data.originalimage && data.originalimage.source) || null;
+  }
+
+  async function fetchRepresentativeImage(breedLabelEn, cocoClass) {
+    const suffix = cocoClass === "dog" ? "dog" : cocoClass === "cat" ? "cat" : "";
+    // MobileNet's ImageNet labels already include "cat" for cat breeds
+    // (e.g. "Persian cat") - appending it again would look up the
+    // nonexistent "Persian cat cat" instead of falling through correctly.
+    const alreadyHasSuffix = suffix && new RegExp(`\\b${suffix}\\b`, "i").test(breedLabelEn);
+    const candidates = suffix && !alreadyHasSuffix ? [`${breedLabelEn} ${suffix}`, breedLabelEn] : [breedLabelEn];
     try {
-      const res = await fetch(
-        `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(breedLabelEn)}`
-      );
-      if (!res.ok) return null;
-      const data = await res.json();
-      return (data.thumbnail && data.thumbnail.source) || (data.originalimage && data.originalimage.source) || null;
+      for (const title of candidates) {
+        const url = await fetchWikipediaSummary(title);
+        if (url) return url;
+      }
+      return null;
     } catch (err) {
       console.warn("대표 이미지를 불러오지 못했습니다:", err.message);
       return null;
@@ -251,7 +272,7 @@
     stopBtn.disabled = true;
     setStatus("품종 인식 완료");
 
-    fetchRepresentativeImage(result.label).then((url) => {
+    fetchRepresentativeImage(result.label, result.class).then((url) => {
       if (url) resultImage.src = url;
     });
   }
