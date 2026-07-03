@@ -19,11 +19,18 @@
   const zoomValue = document.getElementById("zoom-value");
   const loadingModal = document.getElementById("loading-modal");
   const loadingStatus = document.getElementById("loading-status");
+  const breedTallyWrap = document.getElementById("breed-tally-wrap");
+  const breedTallyEl = document.getElementById("breed-tally");
 
   const DETECTION_INTERVAL_MS = 100;
   const BREED_INTERVAL_MS = 700;
   const MIN_SCORE = 0.5;
   const BREED_CONFIRM_THRESHOLD = 0.4;
+  // A single high-confidence frame isn't enough to confirm - the same
+  // subject can flicker between visually similar breeds frame to frame.
+  // Only confirm once one label has accumulated this many qualifying
+  // (>= BREED_CONFIRM_THRESHOLD) votes across rounds.
+  const BREED_CONFIRM_COUNT = 10;
   const BOX_COLOR = "#37e07a";
 
   const cropCanvas = document.createElement("canvas");
@@ -36,6 +43,8 @@
   let model = null;
   let breedReady = false;
   let lastBreedResults = [];
+  let breedVoteCounts = {};
+  let breedVoteMeta = {};
   let stream = null;
   let running = false;
   let rafId = null;
@@ -46,6 +55,23 @@
   function setStatus(text) {
     statusEl.textContent = text;
     loadingStatus.textContent = text;
+  }
+
+  function updateBreedTally() {
+    const entries = Object.entries(breedVoteCounts).sort((a, b) => b[1] - a[1]);
+    breedTallyWrap.hidden = entries.length === 0;
+    breedTallyEl.innerHTML = "";
+    entries.forEach(([label, count]) => {
+      const li = document.createElement("li");
+      li.textContent = `${breedLabelKo(label)} ${count}/${BREED_CONFIRM_COUNT}`;
+      breedTallyEl.appendChild(li);
+    });
+  }
+
+  function resetBreedVotes() {
+    breedVoteCounts = {};
+    breedVoteMeta = {};
+    updateBreedTally();
   }
 
   async function ensureModel() {
@@ -137,6 +163,7 @@
   async function startWebcam() {
     startBtn.disabled = true;
     resultPanel.hidden = true;
+    resetBreedVotes();
     setStatus("모델을 불러오는 중...");
     loadingModal.hidden = false;
     try {
@@ -218,6 +245,7 @@
     detectionsEl.innerHTML = "";
     fpsEl.textContent = "0";
     lastBreedResults = [];
+    resetBreedVotes();
 
     startBtn.disabled = false;
     stopBtn.disabled = true;
@@ -301,7 +329,6 @@
 
   async function classifyBreeds(predictions) {
     const results = [];
-    let confirmed = null;
     for (const pred of predictions) {
       if (!BreedClassifier.isBreedTarget(pred.class)) continue;
       try {
@@ -310,8 +337,9 @@
         if (top) {
           const result = { class: pred.class, bbox: pred.bbox, label: top.label, probability: top.probability };
           results.push(result);
-          if (!confirmed && top.probability >= BREED_CONFIRM_THRESHOLD) {
-            confirmed = result;
+          if (top.probability >= BREED_CONFIRM_THRESHOLD) {
+            breedVoteCounts[top.label] = (breedVoteCounts[top.label] || 0) + 1;
+            breedVoteMeta[top.label] = result;
           }
         }
       } catch (err) {
@@ -319,7 +347,12 @@
       }
     }
     lastBreedResults = results;
-    return confirmed;
+    updateBreedTally();
+
+    const confirmedLabel = Object.keys(breedVoteCounts).find(
+      (label) => breedVoteCounts[label] >= BREED_CONFIRM_COUNT
+    );
+    return confirmedLabel ? breedVoteMeta[confirmedLabel] : null;
   }
 
   function applyCachedBreeds(predictions) {
