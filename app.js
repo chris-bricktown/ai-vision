@@ -17,6 +17,8 @@
   const zoomControl = document.getElementById("zoom-control");
   const zoomRange = document.getElementById("zoom-range");
   const zoomValue = document.getElementById("zoom-value");
+  const loadingModal = document.getElementById("loading-modal");
+  const loadingStatus = document.getElementById("loading-status");
 
   const DETECTION_INTERVAL_MS = 100;
   const BREED_INTERVAL_MS = 700;
@@ -43,6 +45,7 @@
 
   function setStatus(text) {
     statusEl.textContent = text;
+    loadingStatus.textContent = text;
   }
 
   async function ensureModel() {
@@ -134,6 +137,8 @@
   async function startWebcam() {
     startBtn.disabled = true;
     resultPanel.hidden = true;
+    setStatus("모델을 불러오는 중...");
+    loadingModal.hidden = false;
     try {
       await ensureModel();
       await ensureBreedModel();
@@ -171,12 +176,14 @@
       stage.classList.add("active");
       stopBtn.disabled = false;
       setStatus("인식 중...");
+      loadingModal.hidden = true;
       running = true;
       lastFrameTime = performance.now();
       detectFrame();
     } catch (err) {
       console.error(err);
       startBtn.disabled = false;
+      loadingModal.hidden = true;
       if (err.name === "NotAllowedError") {
         setStatus("카메라 접근이 거부되었습니다. 브라우저 권한 설정을 확인하세요.");
       } else if (err.name === "NotFoundError") {
