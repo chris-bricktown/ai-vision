@@ -6,6 +6,7 @@
  */
 (function () {
   const video = document.getElementById("webcam");
+  const startBtn = document.getElementById("start-btn");
   const toggleBtn = document.getElementById("trainer-toggle");
   const body = document.getElementById("trainer-body");
   const addForm = document.getElementById("trainer-add-class-form");
@@ -25,15 +26,17 @@
   const matchPreview = document.getElementById("trainer-match-preview");
   const matchThumb = document.getElementById("trainer-match-thumb");
   const matchCaption = document.getElementById("trainer-match-caption");
+  const candidatesPanel = document.getElementById("trainer-candidates-panel");
+  const candidatesList = document.getElementById("trainer-candidates-list");
+  const candidatesNoneBtn = document.getElementById("trainer-candidates-none-btn");
 
   const CLASSIFY_INTERVAL_MS = 600;
-  // Both gates must pass to confirm a match: confidence is the k-NN vote
-  // fraction for the matched class (with the default k=3, only a unanimous
-  // 3/3 clears 80%), similarity is the matched photo's own cosine
-  // similarity - confidence alone can be high while still not looking much
-  // like anything actually trained.
-  const CONFIRM_CONFIDENCE_THRESHOLD = 0.8;
-  const CONFIRM_SIMILARITY_THRESHOLD = 0.9;
+  // Once the best candidate looks at least this similar to something
+  // trained, pause and ask the user which class it actually is rather than
+  // silently picking one - the user's own choice is then fed back in as a
+  // new training example for that class to improve future accuracy.
+  const CANDIDATE_SIMILARITY_THRESHOLD = 0.7;
+  const MAX_CANDIDATES = 3;
 
   let classifyTimer = null;
   // Ordered per-label arrays (append order matches the order examples were
@@ -87,12 +90,12 @@
     return thumbs && thumbs[index];
   }
 
-  function loadImageFile(file) {
+  function loadImage(src) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => resolve(img);
       img.onerror = () => reject(new Error("이미지를 불러오지 못했습니다."));
-      img.src = URL.createObjectURL(file);
+      img.src = src;
     });
   }
 
@@ -149,7 +152,7 @@
       let succeeded = 0;
       for (const file of files) {
         try {
-          const img = await loadImageFile(file);
+          const img = await loadImage(URL.createObjectURL(file));
           await CustomTrainer.addExample(img, label);
           addThumb(label, img.src);
           updateCount(label);
@@ -199,40 +202,93 @@
     matchPreview.hidden = false;
   }
 
-  function showTrainerResult(result) {
+  function showConfirmedResult(candidate, photoSrc, addedToTraining) {
+    resultEl.hidden = true;
+    matchPreview.hidden = true;
+    candidatesPanel.hidden = true;
+
+    resultImage.removeAttribute("src");
+    if (photoSrc) resultImage.src = photoSrc;
+    resultImage.alt = candidate.label;
+    resultTitle.textContent = `나의 모델: ${candidate.label}`;
+    resultCaption.textContent = addedToTraining
+      ? `직접 선택함 · 이 사진이 "${candidate.label}" 학습 데이터에 추가되어 다음부터 더 정확해집니다.`
+      : `인식 신뢰도 ${Math.round(candidate.confidence * 100)}% · 유사도 ${Math.round(candidate.similarity * 100)}%`;
+    resultPanel.hidden = false;
+  }
+
+  async function pickCandidate(candidate, photoSrc) {
+    try {
+      const img = await loadImage(photoSrc);
+      await CustomTrainer.addExample(img, candidate.label);
+      addThumb(candidate.label, photoSrc);
+      updateCount(candidate.label);
+      showConfirmedResult(candidate, photoSrc, true);
+    } catch (err) {
+      console.error("정확도 향상을 위한 사진 등록 오류:", err);
+      showConfirmedResult(candidate, photoSrc, false);
+    }
+  }
+
+  function renderCandidateCard(candidate, photoSrc) {
+    const card = document.createElement("div");
+    card.className = "trainer-candidate";
+    const thumb = getThumb(candidate.label, candidate.nearestIndex);
+    card.innerHTML = `
+      <img class="trainer-candidate-thumb" alt="" />
+      <div class="trainer-candidate-info">
+        <span class="trainer-candidate-label"></span>
+        <span class="trainer-candidate-score"></span>
+      </div>
+      <button type="button" class="trainer-candidate-pick">이거예요</button>
+    `;
+    const thumbImg = card.querySelector(".trainer-candidate-thumb");
+    if (thumb) thumbImg.src = thumb;
+    thumbImg.alt = candidate.label;
+    card.querySelector(".trainer-candidate-label").textContent = candidate.label;
+    card.querySelector(".trainer-candidate-score").textContent =
+      `신뢰도 ${Math.round(candidate.confidence * 100)}% · 유사도 ${Math.round(candidate.similarity * 100)}%`;
+    card.querySelector(".trainer-candidate-pick").addEventListener("click", () => {
+      pickCandidate(candidate, photoSrc);
+    });
+    return card;
+  }
+
+  function showCandidatePicker(candidates, photoSrc) {
     resultEl.hidden = true;
     matchPreview.hidden = true;
     stopBtn.click();
 
-    resultImage.removeAttribute("src");
-    // Show the exact training photo that was matched (result.label and
-    // result.nearestIndex always refer to the same example CustomTrainer
-    // scored), not just any photo from the class.
-    const thumb = getThumb(result.label, result.nearestIndex);
-    if (thumb) resultImage.src = thumb;
-    resultImage.alt = result.label;
-    resultTitle.textContent = `나의 모델: ${result.label}`;
-    resultCaption.textContent = `인식 신뢰도 ${Math.round(result.confidence * 100)}% · 유사도 ${Math.round(result.similarity * 100)}%`;
-    resultPanel.hidden = false;
+    candidatesList.innerHTML = "";
+    candidates.forEach((candidate) => {
+      candidatesList.appendChild(renderCandidateCard(candidate, photoSrc));
+    });
+    candidatesPanel.hidden = false;
   }
 
   async function runClassification() {
     if (!isWebcamActive()) return;
     try {
-      const result = await CustomTrainer.classify(video);
-      if (!result) return;
-      if (result.confidence >= CONFIRM_CONFIDENCE_THRESHOLD && result.similarity >= CONFIRM_SIMILARITY_THRESHOLD) {
-        showTrainerResult(result);
+      const candidates = await CustomTrainer.classifyCandidates(video, MAX_CANDIDATES);
+      if (!candidates.length) return;
+      const top = candidates[0];
+      if (top.similarity >= CANDIDATE_SIMILARITY_THRESHOLD) {
+        showCandidatePicker(candidates, snapshotDataUrl());
       } else {
         resultEl.textContent =
-          `내 모델: 확실하지 않음 (${result.label} 쪽에 가장 가까움 · ` +
-          `신뢰도 ${Math.round(result.confidence * 100)}% · 유사도 ${Math.round(result.similarity * 100)}%)`;
-        updateMatchPreview(result);
+          `내 모델: 확실하지 않음 (${top.label} 쪽에 가장 가까움 · ` +
+          `신뢰도 ${Math.round(top.confidence * 100)}% · 유사도 ${Math.round(top.similarity * 100)}%)`;
+        updateMatchPreview(top);
       }
     } catch (err) {
       console.error("커스텀 분류 오류:", err);
     }
   }
+
+  candidatesNoneBtn.addEventListener("click", () => {
+    candidatesPanel.hidden = true;
+    startBtn.click();
+  });
 
   useToggle.addEventListener("change", async () => {
     if (useToggle.checked) {
@@ -251,6 +307,7 @@
       classifyTimer = null;
       resultEl.hidden = true;
       matchPreview.hidden = true;
+      candidatesPanel.hidden = true;
     }
   });
 
@@ -303,6 +360,7 @@
     classifyTimer = null;
     resultEl.hidden = true;
     matchPreview.hidden = true;
+    candidatesPanel.hidden = true;
     setStatus("전체 초기화했습니다.");
   });
 })();
