@@ -22,11 +22,17 @@
   const resultTitle = document.getElementById("result-title");
   const resultImage = document.getElementById("result-image");
   const resultCaption = document.getElementById("result-caption");
+  const matchPreview = document.getElementById("trainer-match-preview");
+  const matchThumb = document.getElementById("trainer-match-thumb");
+  const matchCaption = document.getElementById("trainer-match-caption");
 
   const CLASSIFY_INTERVAL_MS = 600;
   const CONFIRM_THRESHOLD = 0.6;
 
   let classifyTimer = null;
+  // Ordered per-label arrays (append order matches the order examples were
+  // added to the classifier), so a nearest-neighbor index from CustomTrainer
+  // can be looked up back to the exact photo that produced it.
   const classThumbnails = {};
 
   function setStatus(text, isError) {
@@ -59,7 +65,8 @@
   }
 
   function addThumb(label, src) {
-    classThumbnails[label] = src;
+    if (!classThumbnails[label]) classThumbnails[label] = [];
+    classThumbnails[label].push(src);
     const li = findClassEl(label);
     if (!li) return;
     const img = document.createElement("img");
@@ -67,6 +74,11 @@
     img.className = "trainer-thumb";
     img.alt = label;
     li.querySelector(".trainer-thumbs").appendChild(img);
+  }
+
+  function getThumb(label, index) {
+    const thumbs = classThumbnails[label];
+    return thumbs && thumbs[index];
   }
 
   function loadImageFile(file) {
@@ -169,16 +181,39 @@
     setStatus(`"${label}" 클래스를 추가했습니다. 사진을 몇 장 등록해 주세요.`);
   });
 
+  function updateMatchPreview(nearest) {
+    if (!nearest) {
+      matchPreview.hidden = true;
+      return;
+    }
+    const thumb = getThumb(nearest.label, nearest.indexWithinLabel);
+    if (!thumb) {
+      matchPreview.hidden = true;
+      return;
+    }
+    matchThumb.src = thumb;
+    matchThumb.alt = nearest.label;
+    matchCaption.textContent = `가장 비슷한 학습 사진: "${nearest.label}" (유사도 ${Math.round(nearest.similarity * 100)}%)`;
+    matchPreview.hidden = false;
+  }
+
   function showTrainerResult(result) {
     resultEl.hidden = true;
+    matchPreview.hidden = true;
     stopBtn.click();
 
     resultImage.removeAttribute("src");
-    const thumb = classThumbnails[result.label];
+    // Show the actual matched training photo (not just any photo from the
+    // class) so it's clear which one drove the recognition.
+    const thumb =
+      (result.nearest && getThumb(result.nearest.label, result.nearest.indexWithinLabel)) ||
+      getThumb(result.label, 0);
     if (thumb) resultImage.src = thumb;
     resultImage.alt = result.label;
     resultTitle.textContent = `나의 모델: ${result.label}`;
-    resultCaption.textContent = `인식 신뢰도 ${Math.round(result.confidence * 100)}%`;
+    resultCaption.textContent = result.nearest
+      ? `인식 신뢰도 ${Math.round(result.confidence * 100)}% · 이 학습 사진과 가장 비슷했습니다 (유사도 ${Math.round(result.nearest.similarity * 100)}%)`
+      : `인식 신뢰도 ${Math.round(result.confidence * 100)}%`;
     resultPanel.hidden = false;
   }
 
@@ -190,7 +225,8 @@
       if (result.confidence >= CONFIRM_THRESHOLD) {
         showTrainerResult(result);
       } else {
-        resultEl.textContent = "내 모델: 확실하지 않음 (사진을 더 등록하면 정확도가 올라갑니다)";
+        resultEl.textContent = `내 모델: 확실하지 않음 (${result.label} 쪽에 가장 가까움, 사진을 더 등록하면 정확도가 올라갑니다)`;
+        updateMatchPreview(result.nearest);
       }
     } catch (err) {
       console.error("커스텀 분류 오류:", err);
@@ -199,8 +235,11 @@
 
   useToggle.addEventListener("change", async () => {
     if (useToggle.checked) {
-      if (CustomTrainer.classCount() === 0) {
-        setStatus("먼저 클래스를 추가하고 사진을 등록하세요.", true);
+      if (!CustomTrainer.canClassify()) {
+        setStatus(
+          "서로 구분하려면 클래스가 최소 2개 필요합니다. 인식하려는 대상 외에 '배경'처럼 아무것도 아닌 클래스도 하나 추가해 보세요.",
+          true
+        );
         useToggle.checked = false;
         return;
       }
@@ -210,6 +249,7 @@
       if (classifyTimer) clearInterval(classifyTimer);
       classifyTimer = null;
       resultEl.hidden = true;
+      matchPreview.hidden = true;
     }
   });
 
@@ -261,6 +301,7 @@
     if (classifyTimer) clearInterval(classifyTimer);
     classifyTimer = null;
     resultEl.hidden = true;
+    matchPreview.hidden = true;
     setStatus("전체 초기화했습니다.");
   });
 })();

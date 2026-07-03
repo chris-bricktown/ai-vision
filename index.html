@@ -37,6 +37,10 @@
       <div class="fps-counter">FPS: <span id="fps">0</span></div>
       <ul id="detections" class="detections"></ul>
       <p id="trainer-result" class="trainer-result" hidden></p>
+      <div class="trainer-match-preview" id="trainer-match-preview" hidden>
+        <img id="trainer-match-thumb" class="trainer-match-thumb" alt="" />
+        <span id="trainer-match-caption" class="trainer-match-caption"></span>
+      </div>
     </div>
 
     <section class="trainer-panel" id="trainer-panel">
@@ -46,6 +50,8 @@
       <div class="trainer-body" id="trainer-body" hidden>
         <p class="trainer-hint">
           이름을 정하고 웹캠으로 찍거나 이미지를 올려 몇 장만 등록하면, 그 즉시 그 이름으로 인식할 수 있습니다.
+          서로 구분하려면 클래스가 최소 2개 필요합니다 — 클래스가 1개뿐이면 무엇을 비추든 항상 그걸로
+          인식됩니다. 인식하려는 대상 외에 "배경"처럼 대상이 없는 클래스도 하나 추가해 보세요.
         </p>
         <form id="trainer-add-class-form" class="trainer-add-class">
           <input type="text" id="trainer-class-title" placeholder="예: 우리집 강아지 초코" required />
