@@ -25,6 +25,41 @@
     return tf.tidy(() => embeddingModel.infer(imageElement, true));
   }
 
+  // classifier.predictClass() only returns a vote fraction per label, not
+  // which specific stored example was closest - so which training photo
+  // "explains" a match can't be shown from that call alone. similarities()
+  // (public on the classifier, used internally by predictClass) returns the
+  // raw cosine similarity against every stored example in the same
+  // label-insertion order the library concatenates them in, so the single
+  // best index can be mapped back to (label, index within that label) using
+  // the per-label counts from getClassExampleCount() in that same order.
+  async function findNearestExample(embedding) {
+    const simsTensor = classifier.similarities(embedding);
+    if (!simsTensor) return null;
+    const sims = await simsTensor.data();
+    simsTensor.dispose();
+
+    let bestIndex = 0;
+    let bestSimilarity = -Infinity;
+    for (let i = 0; i < sims.length; i++) {
+      if (sims[i] > bestSimilarity) {
+        bestSimilarity = sims[i];
+        bestIndex = i;
+      }
+    }
+
+    let offset = 0;
+    const counts = classifier.getClassExampleCount();
+    for (const label of Object.keys(counts)) {
+      const count = counts[label];
+      if (bestIndex < offset + count) {
+        return { label, indexWithinLabel: bestIndex - offset, similarity: bestSimilarity };
+      }
+      offset += count;
+    }
+    return null;
+  }
+
   global.CustomTrainer = {
     async addExample(imageElement, label) {
       await ensureReady();
@@ -45,12 +80,22 @@
       return classifier ? classifier.getNumClasses() : 0;
     },
 
+    // A single class always "wins" 100% of a k-NN vote no matter what the
+    // input actually looks like - there's nothing else for it to lose
+    // against. Recognition needs at least 2 classes to mean anything.
+    canClassify() {
+      return !!classifier && classifier.getNumClasses() >= 2;
+    },
+
     async classify(imageElement) {
-      if (!classifier || classifier.getNumClasses() === 0) return null;
+      if (!this.canClassify()) return null;
       const embedding = embed(imageElement);
-      const result = await classifier.predictClass(embedding);
+      const [result, nearest] = await Promise.all([
+        classifier.predictClass(embedding),
+        findNearestExample(embedding),
+      ]);
       embedding.dispose();
-      return { label: result.label, confidence: result.confidences[result.label] };
+      return { label: result.label, confidence: result.confidences[result.label], nearest };
     },
 
     async exportDataset() {
