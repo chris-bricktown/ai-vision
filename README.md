@@ -24,11 +24,11 @@ GitHub Pages로 배포되어 있습니다: `https://<username>.github.io/ai-visi
 ### 품종 분류 모델 교체 (커스텀 학습 모델로)
 
 `breedClassifier.js`는 품종 분류기를 `load()` / `classify()` 인터페이스 뒤에 감싸 두었습니다.
-`models/custom-breeds/`에는 Oxford-IIIT Pet Dataset 6개 클래스(페르시안·샴·벵골 고양이, 비글·퍼그·요크셔테리어)로
-직접 학습한 작은 예시 모델이 이미 들어 있고, `breedClassifier.js`의 `customBackend`로 구현돼 있습니다
-(학습 스크립트와 과정은 [`training/README.md`](training/README.md) 참고). 클래스가 6개뿐이라 MobileNet보다
-범위가 훨씬 좁으므로 기본 `activeBackend`는 여전히 MobileNet이며, 이건 어디까지나 학습→변환→적용 파이프라인이
-동작한다는 걸 보여주는 예시입니다.
+`models/custom-breeds/`에는 Oxford-IIIT Pet Dataset 37개 품종(고양이 12종 + 개 25종) 전체로 직접
+학습한 모델이 들어 있고, `breedClassifier.js`의 `customBackend`로 구현돼 있습니다(학습 스크립트와
+과정은 [`training/README.md`](training/README.md) 참고, 검증 정확도 약 90.9%). 고양이 품종은
+MobileNet(ImageNet)의 5종보다 넓게 커버하지만, 개 품종은 ImageNet의 약 120종보다 좁아서(25종) 기본
+`activeBackend`는 여전히 MobileNet입니다.
 
 다른 모델로 바꾸려면:
 

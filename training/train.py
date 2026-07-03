@@ -21,7 +21,21 @@ DATASET_DIR = Path("dataset/images")
 OUT_DIR = Path("trained_model")
 OUT_DIR.mkdir(exist_ok=True)
 
-CLASSES = ["Persian", "Siamese", "Bengal", "beagle", "pug", "yorkshire_terrier"]
+# All 37 breeds in the Oxford-IIIT Pet Dataset (12 cats + 25 dogs).
+CLASSES = [
+    # Cats
+    "Abyssinian", "Bengal", "Birman", "Bombay", "British_Shorthair",
+    "Egyptian_Mau", "Maine_Coon", "Persian", "Ragdoll", "Russian_Blue",
+    "Siamese", "Sphynx",
+    # Dogs
+    "american_bulldog", "american_pit_bull_terrier", "basset_hound",
+    "beagle", "boxer", "chihuahua", "english_cocker_spaniel",
+    "english_setter", "german_shorthaired", "great_pyrenees", "havanese",
+    "japanese_chin", "keeshond", "leonberger", "miniature_pinscher",
+    "newfoundland", "pomeranian", "pug", "saint_bernard", "samoyed",
+    "scottish_terrier", "shiba_inu", "staffordshire_bull_terrier",
+    "wheaten_terrier", "yorkshire_terrier",
+]
 
 random.seed(SEED)
 tf.random.set_seed(SEED)

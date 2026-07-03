@@ -1,21 +1,25 @@
 # 커스텀 품종 분류 모델 학습
 
-`../models/custom-breeds/`에 있는 모델을 만든 학습 스크립트입니다. 6개 클래스(고양이 3종 + 개 3종)에
-대한 소규모 데모로, `../breedClassifier.js`의 `customBackend`가 이걸 사용할 수 있습니다
-(기본값은 여전히 MobileNet — 이 모델로 바꾸려면 `breedClassifier.js`의 `activeBackend`를 수정).
+`../models/custom-breeds/`에 있는 모델을 만든 학습 스크립트입니다. [Oxford-IIIT Pet
+Dataset](https://www.robots.ox.ac.uk/~vgg/data/pets/)의 37개 품종(고양이 12종 + 개 25종) 전체로
+학습했고, `../breedClassifier.js`의 `customBackend`가 이걸 사용합니다(기본값은 여전히
+MobileNet — 개 품종은 ImageNet이 훨씬 많이 커버하지만, 고양이 품종은 이 커스텀 모델이 12종으로
+MobileNet의 5종보다 넓습니다. 바꾸려면 `breedClassifier.js`의 `activeBackend`를 수정). CPU로 8
+epoch 학습한 검증 정확도는 약 90.9%입니다.
 
 ## 데이터셋
 
-[Oxford-IIIT Pet Dataset](https://www.robots.ox.ac.uk/~vgg/data/pets/)(연구용 라이선스, 37개 품종)에서
-`train.py`의 `CLASSES` 목록에 있는 클래스만 사용합니다.
+`train.py`의 `CLASSES`가 37개 품종 전체이므로 데이터셋 전체를 내려받아 압축을 풉니다.
 
 ```bash
 curl -sSL -o images.tar.gz https://www.robots.ox.ac.uk/~vgg/data/pets/data/images.tar.gz
 mkdir -p dataset
-tar -xzf images.tar.gz -C dataset --wildcards \
-  'images/Persian_*' 'images/Siamese_*' 'images/Bengal_*' \
-  'images/beagle_*' 'images/pug_*' 'images/yorkshire_terrier_*'
+tar -xzf images.tar.gz -C dataset
 ```
+
+일부 클래스만 학습하려면 `train.py`의 `CLASSES`를 줄이고, 위 `tar -xzf`에 `--wildcards`로 필요한
+클래스 접두어만 추출하면 다운로드/학습 시간을 아낄 수 있습니다(예: `'images/Persian_*'
+'images/beagle_*'`).
 
 ## 의존성
 
@@ -32,7 +36,7 @@ pip install --no-deps tensorflowjs tf_keras tensorflow_decision_forests tensorfl
 ## 학습 및 변환
 
 ```bash
-python3 train.py                    # trained_model/saved_model.h5 생성 (CPU로 8 epoch, 수 분 소요)
+python3 train.py                    # trained_model/saved_model.h5 생성 (CPU로 8 epoch, 37개 클래스 기준 10분 내외)
 tensorflowjs_converter --input_format=keras \
   trained_model/saved_model.h5 trained_model/tfjs
 cp trained_model/tfjs/* ../models/custom-breeds/
