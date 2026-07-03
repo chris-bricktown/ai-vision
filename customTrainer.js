@@ -25,39 +25,38 @@
     return tf.tidy(() => embeddingModel.infer(imageElement, true));
   }
 
-  // classifier.predictClass() only returns a vote fraction per label, not
-  // which specific stored example was closest - so which training photo
-  // "explains" a match can't be shown from that call alone. similarities()
-  // (public on the classifier, used internally by predictClass) returns the
-  // raw cosine similarity against every stored example in the same
-  // label-insertion order the library concatenates them in, so the single
-  // best index can be mapped back to (label, index within that label) using
-  // the per-label counts from getClassExampleCount() in that same order.
-  async function findNearestExample(embedding) {
+  // classifier.predictClass() only returns an overall vote winner, not a
+  // per-class score or which specific stored example was closest - so
+  // showing several plausible candidates (each with its own training photo)
+  // isn't possible from that call alone. similarities() (public on the
+  // classifier, used internally by predictClass) returns the raw cosine
+  // similarity against every stored example in the same label-insertion
+  // order the library concatenates them in, so per label we can find that
+  // label's own best-matching example and rank labels by it.
+  async function bestPerLabel(embedding) {
     const simsTensor = classifier.similarities(embedding);
-    if (!simsTensor) return null;
+    if (!simsTensor) return [];
     const sims = await simsTensor.data();
     simsTensor.dispose();
 
-    let bestIndex = 0;
-    let bestSimilarity = -Infinity;
-    for (let i = 0; i < sims.length; i++) {
-      if (sims[i] > bestSimilarity) {
-        bestSimilarity = sims[i];
-        bestIndex = i;
-      }
-    }
-
-    let offset = 0;
     const counts = classifier.getClassExampleCount();
+    let offset = 0;
+    const results = [];
     for (const label of Object.keys(counts)) {
       const count = counts[label];
-      if (bestIndex < offset + count) {
-        return { label, indexWithinLabel: bestIndex - offset, similarity: bestSimilarity };
+      let bestIndex = 0;
+      let bestSimilarity = -Infinity;
+      for (let i = 0; i < count; i++) {
+        const similarity = sims[offset + i];
+        if (similarity > bestSimilarity) {
+          bestSimilarity = similarity;
+          bestIndex = i;
+        }
       }
+      results.push({ label, indexWithinLabel: bestIndex, similarity: bestSimilarity });
       offset += count;
     }
-    return null;
+    return results;
   }
 
   global.CustomTrainer = {
@@ -87,28 +86,28 @@
       return !!classifier && classifier.getNumClasses() >= 2;
     },
 
-    async classify(imageElement) {
-      if (!this.canClassify()) return null;
+    // Ranked candidate classes for the current frame, each scored by its own
+    // best-matching training example (not just the overall k-NN vote
+    // winner), so label/confidence/similarity/nearestIndex for any one
+    // candidate are always about that same class - no mismatch between a
+    // displayed name and the training photo shown next to it.
+    async classifyCandidates(imageElement, topK = 3) {
+      if (!this.canClassify()) return [];
       const embedding = embed(imageElement);
-      const [voteResult, nearest] = await Promise.all([
+      const [voteResult, perLabel] = await Promise.all([
         classifier.predictClass(embedding),
-        findNearestExample(embedding),
+        bestPerLabel(embedding),
       ]);
       embedding.dispose();
-      if (!nearest) return null;
-      // Report the nearest example's own class throughout, not
-      // predictClass()'s separately-computed vote winner - with 3+ classes
-      // those two can legitimately disagree (e.g. k=3 neighbors split
-      // [A, B, B] votes B, but the single closest photo is A), which showed
-      // up as the "recognized" name not matching the training photo shown
-      // next to it. Confidence is the vote fraction for that same class,
-      // so the two numbers on screen are always about one label.
-      return {
-        label: nearest.label,
-        confidence: voteResult.confidences[nearest.label] || 0,
-        similarity: nearest.similarity,
-        nearestIndex: nearest.indexWithinLabel,
-      };
+      return perLabel
+        .map((entry) => ({
+          label: entry.label,
+          confidence: voteResult.confidences[entry.label] || 0,
+          similarity: entry.similarity,
+          nearestIndex: entry.indexWithinLabel,
+        }))
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, topK);
     },
 
     async exportDataset() {
