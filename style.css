@@ -225,6 +225,18 @@ button:disabled {
   font-size: 0.8rem;
 }
 
+.breed-tally-wrap {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.breed-tally-label {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
 .trainer-result {
   margin: 0.5rem 0 0;
   font-size: 0.85rem;
