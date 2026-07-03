@@ -1,19 +1,19 @@
 /*
  * Dog/cat breed classifier. Wraps whichever model backend is active behind
- * a fixed interface (load / classify) so the MobileNet backend used today
- * can be swapped for a custom-trained model without touching app.js.
+ * a fixed interface (load / classify) so the backend(s) used today can be
+ * changed without touching app.js.
  *
- * `customBackend` below is a working example of the swap: a model trained
- * on all 37 Oxford-IIIT Pet Dataset breeds and converted with
- * tensorflowjs_converter (see README's "커스텀 모델 학습" section). It
- * covers every cat breed in the dataset (more than MobileNet/ImageNet's 5)
- * but fewer dog breeds than ImageNet's ~120, so it's kept opt-in rather
- * than the default. To try it, change `activeBackend` at the bottom of
- * this file.
+ * The default `activeBackend` (combinedBackend, below) runs both
+ * `mobilenetBackend` (ImageNet, ~120 dog breeds but only 5 cat breeds) and
+ * `customBackend` (a model trained on all 37 Oxford-IIIT Pet Dataset
+ * breeds - see README's "커스텀 모델 학습" section - 12 cat breeds, 25 dog
+ * breeds) on every crop and keeps whichever is more confident, so neither
+ * backend's weak spot (MobileNet on cats, the custom model on dog breeds
+ * outside its 25) dominates the result.
  *
- * To add a different custom backend: implement an object with the same
- * shape as `mobilenetBackend`/`customBackend` (load() and
- * classify(imageElement, topK, cocoClass)) and point `activeBackend` at it.
+ * To add a different backend: implement an object with the same shape
+ * (load() and classify(imageElement, topK, cocoClass)) and point
+ * `activeBackend` at it, or fold it into combinedBackend the same way.
  */
 (function (global) {
   const BREED_TARGET_CLASSES = new Set(["dog", "cat"]);
@@ -104,7 +104,31 @@
     },
   };
 
-  const activeBackend = mobilenetBackend;
+  // Runs both backends on every crop and keeps whichever prediction is more
+  // confident: MobileNet covers far more dog breeds (~120 vs 25), the
+  // custom model covers more cat breeds (12 vs 5) and was trained
+  // specifically to avoid off-category guesses, so neither backend alone is
+  // strictly better. Note the two probabilities aren't perfectly
+  // comparable (a 37-class softmax tends to peak higher than a 1000-class
+  // one for the same underlying confidence), but comparing them directly is
+  // still a reasonable, simple way to combine two otherwise-independent
+  // opinions on the same crop.
+  const combinedBackend = {
+    async load() {
+      await Promise.all([mobilenetBackend.load(), customBackend.load()]);
+    },
+    async classify(imageElement, topK, cocoClass) {
+      const [mobilenetResults, customResults] = await Promise.all([
+        mobilenetBackend.classify(imageElement, topK, cocoClass),
+        customBackend.classify(imageElement, topK, cocoClass),
+      ]);
+      return [...mobilenetResults, ...customResults]
+        .sort((a, b) => b.probability - a.probability)
+        .slice(0, topK);
+    },
+  };
+
+  const activeBackend = combinedBackend;
 
   global.BreedClassifier = {
     isBreedTarget(cocoClassName) {
