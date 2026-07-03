@@ -74,20 +74,24 @@
       </div>
     </section>
 
-    <div class="trainer-candidates-panel" id="trainer-candidates-panel" hidden>
-      <h2>이 중에 어떤 것인가요?</h2>
-      <p class="trainer-candidates-hint">
-        고르면 이 사진이 해당 클래스 학습 데이터에 추가되어 다음부터 더 정확하게 인식합니다.
-      </p>
-      <div class="trainer-candidates-list" id="trainer-candidates-list"></div>
-      <button type="button" id="trainer-candidates-none-btn">모두 아님 · 다시 스캔</button>
+    <div class="modal-overlay" id="trainer-candidates-panel" hidden>
+      <div class="modal-card">
+        <h2>이 중에 어떤 것인가요?</h2>
+        <p class="trainer-candidates-hint">
+          고르면 이 사진이 해당 클래스 학습 데이터에 추가되어 다음부터 더 정확하게 인식합니다.
+        </p>
+        <div class="trainer-candidates-list" id="trainer-candidates-list"></div>
+        <button type="button" id="trainer-candidates-none-btn">모두 아님 · 다시 스캔</button>
+      </div>
     </div>
 
-    <div class="result-panel" id="result-panel" hidden>
-      <h2 id="result-title"></h2>
-      <img id="result-image" class="result-image" alt="" />
-      <p id="result-caption" class="result-caption"></p>
-      <button id="rescan-btn" type="button">다시 인식하기</button>
+    <div class="modal-overlay" id="result-panel" hidden>
+      <div class="modal-card">
+        <h2 id="result-title"></h2>
+        <img id="result-image" class="result-image" alt="" />
+        <p id="result-caption" class="result-caption"></p>
+        <button id="rescan-btn" type="button">다시 인식하기</button>
+      </div>
     </div>
   </main>
 

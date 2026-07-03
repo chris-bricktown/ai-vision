@@ -429,16 +429,39 @@ button:disabled {
   font-weight: 600;
 }
 
-.trainer-candidates-panel {
+/* Recognition results (breed ID, teach-yourself candidates/confirm) render
+   as a centered popup instead of inline content further down the page, so
+   they're visible immediately without scrolling regardless of how tall the
+   video preview or panels above them are. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal-card {
   width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1.5rem;
   text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
-.trainer-candidates-panel h2 {
+.modal-card h2 {
   margin: 0 0 0.5rem;
   font-size: 1.4rem;
 }
@@ -512,20 +535,6 @@ button:disabled {
 #trainer-candidates-none-btn:hover {
   border-color: var(--danger);
   color: var(--danger);
-}
-
-.result-panel {
-  width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.5rem;
-  text-align: center;
-}
-
-.result-panel h2 {
-  margin: 0 0 1rem;
-  font-size: 1.4rem;
 }
 
 .result-image {
