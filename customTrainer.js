@@ -90,12 +90,25 @@
     async classify(imageElement) {
       if (!this.canClassify()) return null;
       const embedding = embed(imageElement);
-      const [result, nearest] = await Promise.all([
+      const [voteResult, nearest] = await Promise.all([
         classifier.predictClass(embedding),
         findNearestExample(embedding),
       ]);
       embedding.dispose();
-      return { label: result.label, confidence: result.confidences[result.label], nearest };
+      if (!nearest) return null;
+      // Report the nearest example's own class throughout, not
+      // predictClass()'s separately-computed vote winner - with 3+ classes
+      // those two can legitimately disagree (e.g. k=3 neighbors split
+      // [A, B, B] votes B, but the single closest photo is A), which showed
+      // up as the "recognized" name not matching the training photo shown
+      // next to it. Confidence is the vote fraction for that same class,
+      // so the two numbers on screen are always about one label.
+      return {
+        label: nearest.label,
+        confidence: voteResult.confidences[nearest.label] || 0,
+        similarity: nearest.similarity,
+        nearestIndex: nearest.indexWithinLabel,
+      };
     },
 
     async exportDataset() {

@@ -27,7 +27,13 @@
   const matchCaption = document.getElementById("trainer-match-caption");
 
   const CLASSIFY_INTERVAL_MS = 600;
-  const CONFIRM_THRESHOLD = 0.6;
+  // Both gates must pass to confirm a match: confidence is the k-NN vote
+  // fraction for the matched class (with the default k=3, only a unanimous
+  // 3/3 clears 80%), similarity is the matched photo's own cosine
+  // similarity - confidence alone can be high while still not looking much
+  // like anything actually trained.
+  const CONFIRM_CONFIDENCE_THRESHOLD = 0.8;
+  const CONFIRM_SIMILARITY_THRESHOLD = 0.9;
 
   let classifyTimer = null;
   // Ordered per-label arrays (append order matches the order examples were
@@ -181,19 +187,15 @@
     setStatus(`"${label}" 클래스를 추가했습니다. 사진을 몇 장 등록해 주세요.`);
   });
 
-  function updateMatchPreview(nearest) {
-    if (!nearest) {
-      matchPreview.hidden = true;
-      return;
-    }
-    const thumb = getThumb(nearest.label, nearest.indexWithinLabel);
+  function updateMatchPreview(result) {
+    const thumb = result && getThumb(result.label, result.nearestIndex);
     if (!thumb) {
       matchPreview.hidden = true;
       return;
     }
     matchThumb.src = thumb;
-    matchThumb.alt = nearest.label;
-    matchCaption.textContent = `가장 비슷한 학습 사진: "${nearest.label}" (유사도 ${Math.round(nearest.similarity * 100)}%)`;
+    matchThumb.alt = result.label;
+    matchCaption.textContent = `가장 비슷한 학습 사진: "${result.label}" (유사도 ${Math.round(result.similarity * 100)}%)`;
     matchPreview.hidden = false;
   }
 
@@ -203,17 +205,14 @@
     stopBtn.click();
 
     resultImage.removeAttribute("src");
-    // Show the actual matched training photo (not just any photo from the
-    // class) so it's clear which one drove the recognition.
-    const thumb =
-      (result.nearest && getThumb(result.nearest.label, result.nearest.indexWithinLabel)) ||
-      getThumb(result.label, 0);
+    // Show the exact training photo that was matched (result.label and
+    // result.nearestIndex always refer to the same example CustomTrainer
+    // scored), not just any photo from the class.
+    const thumb = getThumb(result.label, result.nearestIndex);
     if (thumb) resultImage.src = thumb;
     resultImage.alt = result.label;
     resultTitle.textContent = `나의 모델: ${result.label}`;
-    resultCaption.textContent = result.nearest
-      ? `인식 신뢰도 ${Math.round(result.confidence * 100)}% · 이 학습 사진과 가장 비슷했습니다 (유사도 ${Math.round(result.nearest.similarity * 100)}%)`
-      : `인식 신뢰도 ${Math.round(result.confidence * 100)}%`;
+    resultCaption.textContent = `인식 신뢰도 ${Math.round(result.confidence * 100)}% · 유사도 ${Math.round(result.similarity * 100)}%`;
     resultPanel.hidden = false;
   }
 
@@ -222,11 +221,13 @@
     try {
       const result = await CustomTrainer.classify(video);
       if (!result) return;
-      if (result.confidence >= CONFIRM_THRESHOLD) {
+      if (result.confidence >= CONFIRM_CONFIDENCE_THRESHOLD && result.similarity >= CONFIRM_SIMILARITY_THRESHOLD) {
         showTrainerResult(result);
       } else {
-        resultEl.textContent = `내 모델: 확실하지 않음 (${result.label} 쪽에 가장 가까움, 사진을 더 등록하면 정확도가 올라갑니다)`;
-        updateMatchPreview(result.nearest);
+        resultEl.textContent =
+          `내 모델: 확실하지 않음 (${result.label} 쪽에 가장 가까움 · ` +
+          `신뢰도 ${Math.round(result.confidence * 100)}% · 유사도 ${Math.round(result.similarity * 100)}%)`;
+        updateMatchPreview(result);
       }
     } catch (err) {
       console.error("커스텀 분류 오류:", err);
