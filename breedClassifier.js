@@ -57,10 +57,14 @@
   // CUSTOM_LABELS order must exactly match train.py's CLASSES (the model's
   // output layer is indexed by that order).
   const CUSTOM_MODEL_URL = "models/custom-breeds/model.json";
-  const CUSTOM_LABELS = [
+  // CUSTOM_LABELS order must exactly match train.py's CLASSES (the model's
+  // output layer is indexed by that order): 12 cats then 25 dogs.
+  const CUSTOM_CAT_LABELS = [
     "Abyssinian", "Bengal", "Birman", "Bombay", "British_Shorthair",
     "Egyptian_Mau", "Maine_Coon", "Persian", "Ragdoll", "Russian_Blue",
     "Siamese", "Sphynx",
+  ];
+  const CUSTOM_DOG_LABELS = [
     "american_bulldog", "american_pit_bull_terrier", "basset_hound",
     "beagle", "boxer", "chihuahua", "english_cocker_spaniel",
     "english_setter", "german_shorthaired", "great_pyrenees", "havanese",
@@ -69,6 +73,9 @@
     "scottish_terrier", "shiba_inu", "staffordshire_bull_terrier",
     "wheaten_terrier", "yorkshire_terrier",
   ];
+  const CUSTOM_LABELS = [...CUSTOM_CAT_LABELS, ...CUSTOM_DOG_LABELS];
+  const CUSTOM_CAT_SET = new Set(CUSTOM_CAT_LABELS);
+  const CUSTOM_DOG_SET = new Set(CUSTOM_DOG_LABELS);
   const CUSTOM_INPUT_SIZE = 224;
 
   const customBackend = {
@@ -81,7 +88,7 @@
       this.model = await tf.loadLayersModel(CUSTOM_MODEL_URL);
       return this.model;
     },
-    async classify(imageElement, topK, _cocoClass) {
+    async classify(imageElement, topK, cocoClass) {
       const output = tf.tidy(() => {
         // Matches the Python-side preprocessing applied before training
         // (kept out of the model graph itself; see train.py) — rescale
@@ -97,8 +104,14 @@
       });
       const probabilities = await output.data();
       output.dispose();
+      // Keep only breeds matching the category COCO-SSD already detected -
+      // otherwise a dog crop can surface a high-confidence cat breed (e.g.
+      // "Bengal") since this 37-class model has no notion of dog-vs-cat on
+      // its own, producing a "개: 벵골 고양이" style mismatch.
+      const validSet = cocoClass === "dog" ? CUSTOM_DOG_SET : cocoClass === "cat" ? CUSTOM_CAT_SET : null;
       return Array.from(probabilities)
         .map((probability, index) => ({ label: CUSTOM_LABELS[index], probability }))
+        .filter((p) => !validSet || validSet.has(p.label))
         .sort((a, b) => b.probability - a.probability)
         .slice(0, topK);
     },
