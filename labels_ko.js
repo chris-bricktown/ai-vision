@@ -88,8 +88,13 @@
     toothbrush: "칫솔",
   };
 
-  const BREED_LABELS_KO = {
-    // Dog breeds (ImageNet / Stanford Dogs)
+  // Split into DOG_BREED_LABELS_KO / CAT_BREED_LABELS_KO (rather than one
+  // flat table) so breedClassifier.js can use their keys as the
+  // authoritative "is this actually a dog/cat breed" set - MobileNet is a
+  // general 1000-class ImageNet classifier, so its raw top prediction for a
+  // cropped cat/dog can land on an unrelated class (e.g. "ice bear")
+  // without that filter.
+  const DOG_BREED_LABELS_KO = {
     Chihuahua: "치와와",
     "Japanese spaniel": "재패니즈 친",
     "Maltese dog": "몰티즈",
@@ -210,23 +215,34 @@
     dingo: "딩고",
     dhole: "승냥이",
     "African hunting dog": "아프리카들개",
+  };
 
-    // Cat breeds (ImageNet)
+  const CAT_BREED_LABELS_KO = {
     tabby: "태비 고양이",
     "tiger cat": "타이거 캣",
     "Persian cat": "페르시안 고양이",
     "Siamese cat": "샴 고양이",
     "Egyptian cat": "이집션 마우",
+  };
 
-    // Custom model labels (Oxford-IIIT Pet dataset naming)
+  // Labels the custom Oxford-IIIT Pet model (models/custom-breeds/) uses -
+  // a different naming convention than ImageNet's, and that backend already
+  // only ever outputs from this fixed set, so it doesn't need the
+  // dog/cat-breed validity filtering DOG_BREED_LABELS_KO/CAT_BREED_LABELS_KO
+  // exist for.
+  const CUSTOM_MODEL_LABELS_KO = {
     Persian: "페르시안 고양이",
     Siamese: "샴 고양이",
     Bengal: "벵골 고양이",
     yorkshire_terrier: "요크셔 테리어",
   };
 
+  const BREED_LABELS_KO = { ...DOG_BREED_LABELS_KO, ...CAT_BREED_LABELS_KO, ...CUSTOM_MODEL_LABELS_KO };
+
   global.CLASS_LABELS_KO = CLASS_LABELS_KO;
   global.BREED_LABELS_KO = BREED_LABELS_KO;
+  global.DOG_BREED_LABELS_KO = DOG_BREED_LABELS_KO;
+  global.CAT_BREED_LABELS_KO = CAT_BREED_LABELS_KO;
   global.classLabelKo = function (en) {
     return CLASS_LABELS_KO[en] || en;
   };

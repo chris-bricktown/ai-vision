@@ -11,7 +11,7 @@
  *
  * To add a different custom backend: implement an object with the same
  * shape as `mobilenetBackend`/`customBackend` (load() and
- * classify(imageElement, topK)) and point `activeBackend` at it.
+ * classify(imageElement, topK, cocoClass)) and point `activeBackend` at it.
  */
 (function (global) {
   const BREED_TARGET_CLASSES = new Set(["dog", "cat"]);
@@ -26,12 +26,23 @@
       this.model = await mobilenet.load({ version: 2, alpha: 1.0 });
       return this.model;
     },
-    async classify(imageElement, topK) {
-      const predictions = await this.model.classify(imageElement, topK);
-      return predictions.map((p) => ({
-        label: p.className.split(",")[0].trim(),
-        probability: p.probability,
-      }));
+    // MobileNet is a general 1000-class ImageNet classifier, not a
+    // dog/cat-breed-only model - its raw top predictions can land on a
+    // completely unrelated class (e.g. "ice bear") even when COCO-SSD
+    // already correctly identified the crop as a cat. Ask for every class's
+    // probability and keep only ones that are an actual known breed for the
+    // detected category (labels_ko.js's DOG_BREED_LABELS_KO/
+    // CAT_BREED_LABELS_KO - the same lists used to translate a breed name
+    // are also the authoritative set of what counts as a valid one), so an
+    // off-category guess never surfaces as if it were a real breed match.
+    async classify(imageElement, topK, cocoClass) {
+      const allPredictions = await this.model.classify(imageElement, 1000);
+      const validLabels =
+        cocoClass === "dog" ? global.DOG_BREED_LABELS_KO : cocoClass === "cat" ? global.CAT_BREED_LABELS_KO : null;
+      return allPredictions
+        .map((p) => ({ label: p.className.split(",")[0].trim(), probability: p.probability }))
+        .filter((p) => !validLabels || Object.prototype.hasOwnProperty.call(validLabels, p.label))
+        .slice(0, topK);
     },
   };
 
@@ -54,7 +65,7 @@
       this.model = await tf.loadLayersModel(CUSTOM_MODEL_URL);
       return this.model;
     },
-    async classify(imageElement, topK) {
+    async classify(imageElement, topK, _cocoClass) {
       const output = tf.tidy(() => {
         // Matches the Python-side preprocessing applied before training
         // (kept out of the model graph itself; see train.py) — rescale
@@ -86,8 +97,8 @@
     load() {
       return activeBackend.load();
     },
-    classify(imageElement, topK = 1) {
-      return activeBackend.classify(imageElement, topK);
+    classify(imageElement, topK = 1, cocoClass) {
+      return activeBackend.classify(imageElement, topK, cocoClass);
     },
   };
 })(window);

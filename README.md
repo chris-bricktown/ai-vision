@@ -12,7 +12,7 @@ GitHub Pages로 배포되어 있습니다: `https://<username>.github.io/ai-visi
 - **서버리스**: 모델 다운로드부터 추론까지 모두 브라우저에서 실행됩니다. 영상은 어디로도 전송되지 않습니다.
 - **사전 학습 모델**: [COCO-SSD](https://github.com/tensorflow/tfjs-models/tree/master/coco-ssd)를 CDN에서 불러와 즉시 사용합니다.
 - **실시간 인식**: 웹캠 영상 위에 바운딩 박스와 클래스/신뢰도를 실시간으로 오버레이합니다.
-- **개/고양이 품종 인식**: COCO-SSD가 "dog"/"cat"을 찾으면 해당 영역을 잘라내 2차로 [MobileNet](https://github.com/tensorflow/tfjs-models/tree/master/mobilenet)(ImageNet 사전 학습)에 넣어 품종 후보를 표시합니다. ImageNet에는 개 품종이 약 120종 포함돼 있어 개는 비교적 정확하지만, 고양이 품종은 4~5종뿐이라 정확도가 낮습니다.
+- **개/고양이 품종 인식**: COCO-SSD가 "dog"/"cat"을 찾으면 해당 영역을 잘라내 2차로 [MobileNet](https://github.com/tensorflow/tfjs-models/tree/master/mobilenet)(ImageNet 사전 학습)에 넣어 품종 후보를 표시합니다. ImageNet에는 개 품종이 약 120종 포함돼 있어 개는 비교적 정확하지만, 고양이 품종은 4~5종뿐이라 정확도가 낮습니다. MobileNet은 품종 전용 모델이 아니라 ImageNet 1000개 클래스 전체를 분류하는 범용 모델이라, COCO-SSD가 "고양이"라고 정확히 잡아낸 영역에도 전혀 관계없는 클래스(예: "ice bear")가 1순위로 나올 수 있습니다 — 이를 방지하기 위해 전체 1000개 클래스 확률을 받아온 뒤 COCO-SSD가 판단한 카테고리(dog/cat)에 해당하는 known 품종 목록(`labels_ko.js`의 `DOG_BREED_LABELS_KO`/`CAT_BREED_LABELS_KO`)에 있는 것만 후보로 남기고, 그중 확률이 가장 높은 걸 보여줍니다.
 - **한글 인식 결과**: 객체 클래스(80종)와 품종 라벨을 `labels_ko.js`의 매핑 테이블을 통해 한글로 표시합니다. 매핑에 없는 라벨은 영문 그대로 표시됩니다.
 - **품종 확정 시 자동 정지 + 대표 이미지**: 품종 분류 신뢰도가 임계값(기본 40%) 이상이면 실시간 인식을 멈추고, 해당 품종의 대표 이미지를 [Wikipedia REST API](https://en.wikipedia.org/api/rest_v1/)에서 가져와 보여줍니다. "다시 인식하기" 버튼으로 재시작할 수 있습니다.
 - **카메라 방향에 따른 자동 좌우반전**: 노트북 웹캠처럼 전면 카메라를 쓸 때는 거울처럼 좌우반전되어 보이지만, 휴대폰 후면 카메라(`facingMode: environment`)로 전환되면 실제 세상을 그대로 보여주기 위해 반전을 끕니다.

@@ -278,7 +278,7 @@
       if (!BreedClassifier.isBreedTarget(pred.class)) continue;
       try {
         const crop = cropRegion(video, pred.bbox);
-        const [top] = await BreedClassifier.classify(crop, 1);
+        const [top] = await BreedClassifier.classify(crop, 1, pred.class);
         if (top) {
           const result = { class: pred.class, bbox: pred.bbox, label: top.label, probability: top.probability };
           results.push(result);
