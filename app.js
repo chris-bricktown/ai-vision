@@ -154,6 +154,10 @@
 
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
+      // Match the stage box to the camera's real aspect ratio so the full
+      // frame fits (object-fit: contain) instead of object-fit: cover
+      // cropping whichever edges don't fit a fixed 4:3 box.
+      stage.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
 
       const track = stream.getVideoTracks()[0];
       const trackSettings = track.getSettings();
@@ -194,6 +198,7 @@
     }
     video.srcObject = null;
     stage.classList.remove("active");
+    stage.style.aspectRatio = "";
 
     currentTrack = null;
     zoomControl.hidden = true;

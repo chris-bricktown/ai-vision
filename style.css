@@ -135,6 +135,10 @@ button:disabled {
 .stage {
   position: relative;
   width: 100%;
+  /* Placeholder ratio before the webcam starts; app.js overrides this
+     inline with the camera's actual aspect ratio once known, so the full
+     frame fits without cropping (object-fit: contain) instead of the box
+     shape cutting off part of the image. */
   aspect-ratio: 4 / 3;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -152,10 +156,10 @@ button:disabled {
   left: 0;
   width: 100%;
   height: 100%;
+  object-fit: contain;
 }
 
 #webcam {
-  object-fit: cover;
   display: none;
 }
 
