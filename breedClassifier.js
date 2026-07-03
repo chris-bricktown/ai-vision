@@ -3,11 +3,13 @@
  * a fixed interface (load / classify) so the MobileNet backend used today
  * can be swapped for a custom-trained model without touching app.js.
  *
- * `customBackend` below is a working example of the swap: a small model
- * trained on 6 breeds and converted with tensorflowjs_converter (see
- * README's "커스텀 모델 학습" section). It's a proof of concept, not a
- * production replacement — MobileNet covers far more breeds. To try it,
- * change `activeBackend` at the bottom of this file.
+ * `customBackend` below is a working example of the swap: a model trained
+ * on all 37 Oxford-IIIT Pet Dataset breeds and converted with
+ * tensorflowjs_converter (see README's "커스텀 모델 학습" section). It
+ * covers every cat breed in the dataset (more than MobileNet/ImageNet's 5)
+ * but fewer dog breeds than ImageNet's ~120, so it's kept opt-in rather
+ * than the default. To try it, change `activeBackend` at the bottom of
+ * this file.
  *
  * To add a different custom backend: implement an object with the same
  * shape as `mobilenetBackend`/`customBackend` (load() and
@@ -46,13 +48,27 @@
     },
   };
 
-  // Small proof-of-concept custom model: MobileNetV2 (frozen, ImageNet
-  // weights) fine-tuned on 6 classes (3 cat + 3 dog breeds) from the
-  // Oxford-IIIT Pet Dataset. Demonstrates the training -> tensorflowjs_converter
-  // -> tf.loadLayersModel pipeline described above; not a production
-  // replacement for the much broader MobileNet/ImageNet backend.
+  // Custom model: MobileNetV2 (frozen, ImageNet weights) fine-tuned on all
+  // 37 breeds (12 cat + 25 dog) in the Oxford-IIIT Pet Dataset, converted
+  // with tensorflowjs_converter. Demonstrates the training ->
+  // tensorflowjs_converter -> tf.loadLayersModel pipeline (see
+  // training/README.md); covers every cat breed the dataset has (more than
+  // MobileNet/ImageNet's 5), though fewer dog breeds than ImageNet's ~120.
+  // CUSTOM_LABELS order must exactly match train.py's CLASSES (the model's
+  // output layer is indexed by that order).
   const CUSTOM_MODEL_URL = "models/custom-breeds/model.json";
-  const CUSTOM_LABELS = ["Persian", "Siamese", "Bengal", "beagle", "pug", "yorkshire_terrier"];
+  const CUSTOM_LABELS = [
+    "Abyssinian", "Bengal", "Birman", "Bombay", "British_Shorthair",
+    "Egyptian_Mau", "Maine_Coon", "Persian", "Ragdoll", "Russian_Blue",
+    "Siamese", "Sphynx",
+    "american_bulldog", "american_pit_bull_terrier", "basset_hound",
+    "beagle", "boxer", "chihuahua", "english_cocker_spaniel",
+    "english_setter", "german_shorthaired", "great_pyrenees", "havanese",
+    "japanese_chin", "keeshond", "leonberger", "miniature_pinscher",
+    "newfoundland", "pomeranian", "pug", "saint_bernard", "samoyed",
+    "scottish_terrier", "shiba_inu", "staffordshire_bull_terrier",
+    "wheaten_terrier", "yorkshire_terrier",
+  ];
   const CUSTOM_INPUT_SIZE = 224;
 
   const customBackend = {

@@ -226,14 +226,52 @@
   };
 
   // Labels the custom Oxford-IIIT Pet model (models/custom-breeds/) uses -
-  // a different naming convention than ImageNet's, and that backend already
-  // only ever outputs from this fixed set, so it doesn't need the
+  // a different naming convention than ImageNet's (underscored, and not
+  // always the same breed name), and that backend already only ever
+  // outputs from this fixed 37-class set, so it doesn't need the
   // dog/cat-breed validity filtering DOG_BREED_LABELS_KO/CAT_BREED_LABELS_KO
-  // exist for.
+  // exist for. Order doesn't matter here (unlike CLASSES in train.py /
+  // CUSTOM_LABELS in breedClassifier.js, which must match the model's
+  // output layer), this is just a lookup table.
   const CUSTOM_MODEL_LABELS_KO = {
-    Persian: "페르시안 고양이",
-    Siamese: "샴 고양이",
+    // Cats
+    Abyssinian: "아비시니안 고양이",
     Bengal: "벵골 고양이",
+    Birman: "버먼 고양이",
+    Bombay: "봄베이 고양이",
+    British_Shorthair: "브리티시 숏헤어",
+    Egyptian_Mau: "이집션 마우",
+    Maine_Coon: "메인쿤",
+    Persian: "페르시안 고양이",
+    Ragdoll: "랙돌",
+    Russian_Blue: "러시안 블루",
+    Siamese: "샴 고양이",
+    Sphynx: "스핑크스 고양이",
+    // Dogs
+    american_bulldog: "아메리칸 불도그",
+    american_pit_bull_terrier: "아메리칸 핏불 테리어",
+    basset_hound: "바셋 하운드",
+    beagle: "비글",
+    boxer: "복서",
+    chihuahua: "치와와",
+    english_cocker_spaniel: "잉글리시 코커 스파니엘",
+    english_setter: "잉글리시 세터",
+    german_shorthaired: "저먼 쇼트헤어드 포인터",
+    great_pyrenees: "그레이트 피레니즈",
+    havanese: "하바니즈",
+    japanese_chin: "재패니즈 친",
+    keeshond: "키스혼트",
+    leonberger: "레온베르거",
+    miniature_pinscher: "미니어처 핀셔",
+    newfoundland: "뉴펀들랜드",
+    pomeranian: "포메라니안",
+    pug: "퍼그",
+    saint_bernard: "세인트 버나드",
+    samoyed: "사모예드",
+    scottish_terrier: "스코티시 테리어",
+    shiba_inu: "시바견",
+    staffordshire_bull_terrier: "스태퍼드셔 불 테리어",
+    wheaten_terrier: "소프트 코티드 휘튼 테리어",
     yorkshire_terrier: "요크셔 테리어",
   };
 
