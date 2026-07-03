@@ -400,6 +400,11 @@ button:disabled {
   font-size: 0.8rem;
 }
 
+.trainer-status-error {
+  color: var(--danger);
+  font-weight: 600;
+}
+
 .result-panel {
   width: 100%;
   background: var(--surface);
