@@ -23,8 +23,9 @@
 
   let classifyTimer = null;
 
-  function setStatus(text) {
+  function setStatus(text, isError) {
     statusEl.textContent = text;
+    statusEl.classList.toggle("trainer-status-error", !!isError);
   }
 
   function isWebcamActive() {
@@ -99,35 +100,43 @@
     });
 
     li.querySelector(".trainer-capture-btn").addEventListener("click", async () => {
-      if (!isWebcamActive()) {
-        setStatus("먼저 웹캠을 시작하세요.");
-        return;
-      }
       try {
+        if (!isWebcamActive()) {
+          setStatus("먼저 웹캠을 시작하세요.", true);
+          return;
+        }
+        setStatus("사진을 등록하는 중... (처음 한 번은 모델을 내려받느라 몇 초 걸릴 수 있습니다)");
         const thumb = snapshotDataUrl();
         await CustomTrainer.addExample(video, label);
         addThumb(label, thumb);
         updateCount(label);
         setStatus(`"${label}"에 사진을 추가했습니다.`);
       } catch (err) {
-        setStatus(err.message || "촬영에 실패했습니다.");
+        console.error("웹캠 촬영 등록 오류:", err);
+        setStatus((err && err.message) || "촬영에 실패했습니다. 브라우저 콘솔(F12)에서 자세한 오류를 확인해 주세요.", true);
       }
     });
 
     li.querySelector(".trainer-upload-input").addEventListener("change", async (e) => {
       const files = Array.from(e.target.files || []);
       e.target.value = "";
+      let succeeded = 0;
       for (const file of files) {
         try {
           const img = await loadImageFile(file);
           await CustomTrainer.addExample(img, label);
           addThumb(label, img.src);
           updateCount(label);
+          succeeded += 1;
         } catch (err) {
-          console.warn("이미지 등록 실패:", err.message);
+          console.error("이미지 등록 실패:", err);
         }
       }
-      if (files.length) setStatus(`"${label}"에 이미지 ${files.length}장을 등록했습니다.`);
+      if (succeeded > 0) {
+        setStatus(`"${label}"에 이미지 ${succeeded}장을 등록했습니다.`);
+      } else if (files.length) {
+        setStatus("이미지 등록에 실패했습니다. 브라우저 콘솔(F12)에서 자세한 오류를 확인해 주세요.", true);
+      }
     });
 
     return li;
@@ -166,10 +175,10 @@
     }
   }
 
-  useToggle.addEventListener("change", () => {
+  useToggle.addEventListener("change", async () => {
     if (useToggle.checked) {
       if (CustomTrainer.classCount() === 0) {
-        setStatus("먼저 클래스를 추가하고 사진을 등록하세요.");
+        setStatus("먼저 클래스를 추가하고 사진을 등록하세요.", true);
         useToggle.checked = false;
         return;
       }
@@ -183,18 +192,23 @@
   });
 
   exportBtn.addEventListener("click", async () => {
-    const data = await CustomTrainer.exportDataset();
-    if (!data || Object.keys(data).length === 0) {
-      setStatus("내보낼 학습 데이터가 없습니다.");
-      return;
+    try {
+      const data = await CustomTrainer.exportDataset();
+      if (!data || Object.keys(data).length === 0) {
+        setStatus("내보낼 학습 데이터가 없습니다.", true);
+        return;
+      }
+      const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "my-model.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      setStatus("모델을 내보냈습니다.");
+    } catch (err) {
+      console.error("모델 내보내기 오류:", err);
+      setStatus("모델을 내보내지 못했습니다.", true);
     }
-    const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "my-model.json";
-    a.click();
-    URL.revokeObjectURL(a.href);
-    setStatus("모델을 내보냈습니다.");
   });
 
   importInput.addEventListener("change", async (e) => {
@@ -212,7 +226,8 @@
       });
       setStatus("모델을 불러왔습니다.");
     } catch (err) {
-      setStatus("모델 파일을 불러오지 못했습니다: " + err.message);
+      console.error("모델 불러오기 오류:", err);
+      setStatus("모델 파일을 불러오지 못했습니다: " + err.message, true);
     }
   });
 
