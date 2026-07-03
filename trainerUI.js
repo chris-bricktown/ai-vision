@@ -17,11 +17,17 @@
   const resetBtn = document.getElementById("trainer-reset-btn");
   const statusEl = document.getElementById("trainer-status");
   const resultEl = document.getElementById("trainer-result");
+  const stopBtn = document.getElementById("stop-btn");
+  const resultPanel = document.getElementById("result-panel");
+  const resultTitle = document.getElementById("result-title");
+  const resultImage = document.getElementById("result-image");
+  const resultCaption = document.getElementById("result-caption");
 
   const CLASSIFY_INTERVAL_MS = 600;
-  const CONFIDENCE_THRESHOLD = 0.6;
+  const CONFIRM_THRESHOLD = 0.6;
 
   let classifyTimer = null;
+  const classThumbnails = {};
 
   function setStatus(text, isError) {
     statusEl.textContent = text;
@@ -53,6 +59,7 @@
   }
 
   function addThumb(label, src) {
+    classThumbnails[label] = src;
     const li = findClassEl(label);
     if (!li) return;
     const img = document.createElement("img");
@@ -95,6 +102,7 @@
 
     li.querySelector(".trainer-class-remove").addEventListener("click", () => {
       CustomTrainer.removeClass(label);
+      delete classThumbnails[label];
       li.remove();
       setStatus(`"${label}" 클래스를 삭제했습니다.`);
     });
@@ -161,15 +169,29 @@
     setStatus(`"${label}" 클래스를 추가했습니다. 사진을 몇 장 등록해 주세요.`);
   });
 
+  function showTrainerResult(result) {
+    resultEl.hidden = true;
+    stopBtn.click();
+
+    resultImage.removeAttribute("src");
+    const thumb = classThumbnails[result.label];
+    if (thumb) resultImage.src = thumb;
+    resultImage.alt = result.label;
+    resultTitle.textContent = `나의 모델: ${result.label}`;
+    resultCaption.textContent = `인식 신뢰도 ${Math.round(result.confidence * 100)}%`;
+    resultPanel.hidden = false;
+  }
+
   async function runClassification() {
     if (!isWebcamActive()) return;
     try {
       const result = await CustomTrainer.classify(video);
       if (!result) return;
-      resultEl.textContent =
-        result.confidence >= CONFIDENCE_THRESHOLD
-          ? `내 모델 인식 결과: ${result.label} (${Math.round(result.confidence * 100)}%)`
-          : "내 모델: 확실하지 않음";
+      if (result.confidence >= CONFIRM_THRESHOLD) {
+        showTrainerResult(result);
+      } else {
+        resultEl.textContent = "내 모델: 확실하지 않음 (사진을 더 등록하면 정확도가 올라갑니다)";
+      }
     } catch (err) {
       console.error("커스텀 분류 오류:", err);
     }
@@ -234,6 +256,7 @@
   resetBtn.addEventListener("click", () => {
     CustomTrainer.reset();
     classList.innerHTML = "";
+    Object.keys(classThumbnails).forEach((label) => delete classThumbnails[label]);
     useToggle.checked = false;
     if (classifyTimer) clearInterval(classifyTimer);
     classifyTimer = null;
